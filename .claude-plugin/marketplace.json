@@ -1,0 +1,18 @@
+{
+  "name": "iris-hep-tools",
+  "owner": {
+    "name": "Ben Galewsky",
+    "email": "bengal1@illinois.edu"
+  },
+  "plugins": [
+    {
+      "name": "iris-hep",
+      "source": "./iris-hep",
+      "description": "Plugin for using ClaudeCode to create HEP Analyses",
+      "version": "1.0.0-rc.1",
+      "author": {
+        "name": "Gordon Watts"
+      }
+    }
+  ]
+}
