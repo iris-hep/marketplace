@@ -1,7 +1,7 @@
 {
 "name": "iris-hep",
 "description": "Plugin for using ClaudeCode to create HEP Analyses",
-"version": "1.0.0-RC.1",
+"version": "1.0.0-RC.2",
 "author": {
 "name": "Ben Galewsky"
 }
