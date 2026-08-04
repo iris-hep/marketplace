@@ -7,11 +7,13 @@ Tools are C++ objects used by the framework that is actually extracting the data
 
 These are defined in the `xaod_hints` module if you need to define special tools from user instructions. In many cases you find tool helpers. Examples below show you how to use these functions.
 
-Whenever you use these tool helpers, copy `xaod_hints.py` from the skill assets into the user's package source directory so imports work:
+Whenever you use these tool helpers, add the published `hep-llm-helpers` dependency to the user's project so the helper imports work:
 
 ```bash
-cp /home/gwatts/code/llm/skill-test/.codex/skills/servicex/assets/xaod_hints.py /path/to/your/package/
+pip install "hep-llm-helpers>=0.1.0"
 ```
+
+For a standalone `uv run --script` file, add `"hep-llm-helpers>=0.1.0"` to the PEP 723 dependency block instead.
 
 ## BTaggingSelectionTool: getting jet b-tagging results
 
@@ -35,7 +37,7 @@ Make sure the `{tool_name}` is different if you need to define multiple tools (b
 ```python
 # Specific for the below code
 from func_adl_servicex_xaodr25.xAOD.jet_v1 import Jet_v1
-from xaod_hints import make_a_tool, make_tool_accessor
+from hep_llm_helpers.xaod_hints import make_a_tool, make_tool_accessor
 
 # Define the tool. This passes `init_lines` for Run 3.
 query_base, tag_tool_info = make_a_tool(
