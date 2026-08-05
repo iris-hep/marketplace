@@ -10,10 +10,10 @@ These are defined in the `xaod_hints` module if you need to define special tools
 Whenever you use these tool helpers, add the published `hep-llm-helpers` dependency to the user's project so the helper imports work:
 
 ```bash
-pip install "hep-llm-helpers>=0.1.0"
+pip install "hep-llm-helpers>=1.0.0b1"
 ```
 
-For a standalone `uv run --script` file, add `"hep-llm-helpers>=0.1.0"` to the PEP 723 dependency block instead.
+For a standalone `uv run --script` file, add `"hep-llm-helpers>=1.0.0b1"` to the PEP 723 dependency block instead.
 
 ## BTaggingSelectionTool: getting jet b-tagging results
 
