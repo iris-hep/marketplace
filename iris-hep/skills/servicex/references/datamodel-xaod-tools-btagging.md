@@ -9,13 +9,7 @@ These are defined in the `xaod_hints` module if you need to define special tools
 
 **Critical naming rule:** the Python variable assigned by `make_tool_accessor`, its `function_name`, and the name called later in the `func_adl` query must be identical. For example, if the accessor is assigned to `tag_weight`, set `function_name="tag_weight"` and call `tag_weight(jet)`. If these names differ (for example, assigning to `tag_weight` but using `function_name="btagging_discriminant"`), the generated query can fail with an unknown type `tag_weight` error.
 
-Whenever you use these tool helpers, add the published `hep-llm-helpers` dependency to the user's project so the helper imports work:
-
-```bash
-pip install "hep-llm-helpers>=1.0.0b1"
-```
-
-For a standalone `uv run --script` file, add `"hep-llm-helpers>=1.0.0b1"` to the PEP 723 dependency block instead.
+Whenever you use these tool helpers, add the published `hep-llm-helpers>-1.0.0b1` dependency to the user's project so the helper imports correctly.
 
 ## BTaggingSelectionTool: getting jet b-tagging results
 
@@ -102,5 +96,3 @@ query = (query_base
 ```
 
 Make sure to use `base_query` here: the `make_a_tool` must have been called on the query first.
-
-You must uncomment one set or the other of the initialization lines in the code. Look for the comment about uncommenting the proper code. It will not work otherwise.
