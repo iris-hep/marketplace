@@ -80,8 +80,7 @@ jet_is_tagged = make_tool_accessor(
 )
 ```
 
-For Open Data, uncomment all three Open Data configuration lines, including
-`readFromBTaggingObject`, before the `initialize()` call.
+For Open Data, uncomment all three Open Data configuration lines before the `initialize()` call. The OpenData release is older data, so needs some modifications to read the metadata for it.
 
 Usage of the accessors in `func_adl` is straightforward. The accessor name must be repeated exactly in the query:
 
