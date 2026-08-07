@@ -48,6 +48,7 @@ query_base, tag_tool_info = make_a_tool(
         # Uncomment the next 3 lines if you are running on ATLAS OpenData only
         # 'ANA_CHECK(asg::setProperty({tool_name}, "TaggerName", "DL1dv01"));',
         # 'ANA_CHECK(asg::setProperty({tool_name}, "FlvTagCutDefinitionsFileName", "xAODBTaggingEfficiency/13TeV/2022-22-13TeV-MC20-CDI-2022-07-28_v1.root"));',
+        # 'ANA_CHECK(asg::setProperty({tool_name}, "readFromBTaggingObject", true));',
 
         # This line must be run last no matter what type of data you are running on
         "ANA_CHECK({tool_name}->initialize());",
@@ -78,6 +79,9 @@ jet_is_tagged = make_tool_accessor(
     return_type_python="bool",
 )
 ```
+
+For Open Data, uncomment all three Open Data configuration lines, including
+`readFromBTaggingObject`, before the `initialize()` call.
 
 Usage of the accessors in `func_adl` is straightforward. The accessor name must be repeated exactly in the query:
 
