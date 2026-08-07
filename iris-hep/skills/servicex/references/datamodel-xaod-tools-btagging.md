@@ -7,11 +7,9 @@ Tools are C++ objects used by the framework that is actually extracting the data
 
 These are defined in the `xaod_hints` module if you need to define special tools from user instructions. In many cases you find tool helpers. Examples below show you how to use these functions.
 
-Whenever you use these tool helpers, copy `xaod_hints.py` from the skill assets into the user's package source directory so imports work:
+**Critical naming rule:** the Python variable assigned by `make_tool_accessor`, its `function_name`, and the name called later in the `func_adl` query must be identical. For example, if the accessor is assigned to `tag_weight`, set `function_name="tag_weight"` and call `tag_weight(jet)`. If these names differ (for example, assigning to `tag_weight` but using `function_name="btagging_discriminant"`), the generated query can fail with an unknown type `tag_weight` error.
 
-```bash
-cp /home/gwatts/code/llm/skill-test/.codex/skills/servicex/assets/xaod_hints.py /path/to/your/package/
-```
+Whenever you use these tool helpers, add the published `hep-llm-helpers>-1.0.0b1` dependency to the user's project so the helper imports correctly.
 
 ## BTaggingSelectionTool: getting jet b-tagging results
 
@@ -35,7 +33,7 @@ Make sure the `{tool_name}` is different if you need to define multiple tools (b
 ```python
 # Specific for the below code
 from func_adl_servicex_xaodr25.xAOD.jet_v1 import Jet_v1
-from xaod_hints import make_a_tool, make_tool_accessor
+from hep_llm_helpers.xaod_hints import make_a_tool, make_tool_accessor
 
 # Define the tool. This passes `init_lines` for Run 3.
 query_base, tag_tool_info = make_a_tool(
@@ -50,6 +48,7 @@ query_base, tag_tool_info = make_a_tool(
         # Uncomment the next 3 lines if you are running on ATLAS OpenData only
         # 'ANA_CHECK(asg::setProperty({tool_name}, "TaggerName", "DL1dv01"));',
         # 'ANA_CHECK(asg::setProperty({tool_name}, "FlvTagCutDefinitionsFileName", "xAODBTaggingEfficiency/13TeV/2022-22-13TeV-MC20-CDI-2022-07-28_v1.root"));',
+        # 'ANA_CHECK(asg::setProperty({tool_name}, "readFromBTaggingObject", true));',
 
         # This line must be run last no matter what type of data you are running on
         "ANA_CHECK({tool_name}->initialize());",
@@ -81,13 +80,22 @@ jet_is_tagged = make_tool_accessor(
 )
 ```
 
-Usage of `jet_is_tagged` in `func_adl` is straight forward:
+For Open Data, uncomment all three Open Data configuration lines before the `initialize()` call. The OpenData release is older data, so needs some modifications to read the metadata for it.
+
+Usage of the accessors in `func_adl` is straightforward. The accessor name must be repeated exactly in the query:
+
+```python
+query = (query_base
+    .Select(lambda e: e.Jets().Select(lambda j: tag_weight(j)))
+)
+```
+
+For a boolean working-point result, use the matching `jet_is_tagged` name instead:
 
 ```python
 query = (query_base
     .Select(lambda e: e.Jets().Select(lambda j: jet_is_tagged(j)))
+)
 ```
 
 Make sure to use `base_query` here: the `make_a_tool` must have been called on the query first.
-
-You must uncomment one set or the other of the initialization lines in the code. Look for the comment about uncommenting the proper code. It will not work otherwise.

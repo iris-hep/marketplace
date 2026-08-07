@@ -35,6 +35,8 @@ Provide concise, correct func_adl query patterns for ServiceX on ATLAS xAOD, wit
 - For fetches where cache bypass matters, use `ignore_local_cache=True` in `deliver`.
 - If a transform fails and logs are required, respond with `HELP USER`.
 - Ensure `func_adl_servicex_xaodr25` is listed as a dependency in the active project and installed in the current virtual environment before running or generating code that uses it.
+- When using xAOD tool helpers, add `hep-llm-helpers>=1.0.0b1` to the active project; standalone PEP 723 scripts must list it in their dependency block, and imports use `hep_llm_helpers.xaod_hints`.
+- When defining an xAOD accessor, the Python variable assigned by `make_tool_accessor` must exactly match its `function_name` (for example, `tag_weight = make_tool_accessor(..., function_name="tag_weight", ...)`); use that same name in the later query. A mismatch causes an unknown-type translation error.
 - In standalone-script metadata, declare `jinja2` explicitly if the environment requires it for `func_adl_servicex_xaodr25` usage.
 
 ## References
