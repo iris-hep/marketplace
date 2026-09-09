@@ -11,7 +11,8 @@ query = FuncADLQueryPHYS() \
     })
 ```
 
-These objects all have `pt`, `eta`, `phi` (with methods by those names). To access `px`, `py`, `pz` you have to get the 4-vector first:
+These objects all have `pt`, `eta`, `phi` (with methods by those names). To
+access `px`, `py`, `pz` you have to get the 4-vector first:
 
 ```python
 query = FuncADLQueryPHYS() \

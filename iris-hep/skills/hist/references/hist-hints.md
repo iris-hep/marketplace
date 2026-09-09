@@ -17,13 +17,25 @@ h = (
 )
 ```
 
-The `Reg` method creates a regular (uniform-width) binned axis for the histogram. You specify the number of bins, the lower and upper edges, and optionally the axis name and label. For example, `.Reg(10, 0, 1, name="x", label="x-axis")` creates an axis named "x" with 10 bins from 0 (inclusive) to 1 (exclusive), each bin having equal width.
+The `Reg` method creates a regular (uniform-width) binned axis for the
+histogram. You specify the number of bins, the lower and upper edges, and
+optionally the axis name and label. For example,
+`.Reg(10, 0, 1, name="x", label="x-axis")` creates an axis named "x" with 10
+bins from 0 (inclusive) to 1 (exclusive), each bin having equal width.
 
-The `Var` method in the Hist API creates a variable-width binned axis for your histogram. Unlike .Reg, which makes bins of equal width, `Var` lets you specify the exact bin edges, so each bin can have a different width.
+The `Var` method in the Hist API creates a variable-width binned axis for your
+histogram. Unlike .Reg, which makes bins of equal width, `Var` lets you specify
+the exact bin edges, so each bin can have a different width.
 
-Labels can contains `LaTeX` (and should for `eta` ($\eta$) and `pt` ($p_{T}$)). If you are using a f-string or `str.format(...)` that the curly LaTeX braces must be escaped. Make sure you surround the math symbols with `$`!!
+Labels can contains `LaTeX` (and should for `eta` ($\eta$) and `pt` ($p_{T}$)).
+If you are using a f-string or `str.format(...)` that the curly LaTeX braces
+must be escaped. Make sure you surround the math symbols with `$`!!
 
-The storage type is either `Int64` or `Weight`. If you are doing just counts in the histogram, use `.Int64()`. If you are building a weighted histogram (say with mc weights) then use `.Weight()`. You can use only one of the two. Do not use both - Do not chain Int64 and Weight! You'll get an error ("Hist object has no attribute XXX")
+The storage type is either `Int64` or `Weight`. If you are doing just counts in
+the histogram, use `.Int64()`. If you are building a weighted histogram (say
+with mc weights) then use `.Weight()`. You can use only one of the two. Do not
+use both - Do not chain Int64 and Weight! You'll get an error ("Hist object has
+no attribute XXX")
 
 ## Filling a histogram with data
 
@@ -32,7 +44,7 @@ The storage type is either `Int64` or `Weight`. If you are doing just counts in 
 h.fill(x=[3, 5, 2], y=[1, 4, 6])
 ```
 
-Note that `.fill` returns `None`.
+Note that `.fill` returns the histogram object (self), enabling method chaining.
 
 ## Viewing histogram counts and errors
 
@@ -82,7 +94,9 @@ h_sig = histogram[:, "4j2b", "ttbar", "nominal"]
 
 ## Plotting a 1D histogram with mplhep style
 
-Use the `fix, ax = plt.subplots()` to create the plots. Use the default `figsize` unless otherwise instructed (e.g. don't specify it). DO NOT Specify a `figsize`! Leave it at the default!
+Use `fig, ax = plt.subplots()` to create the plots. Use the default `figsize`
+unless otherwise instructed — do not specify a `figsize`; leave it at the
+default.
 
 ```python
 import matplotlib.pyplot as plt
@@ -97,8 +111,11 @@ ax.set_xlabel("Mass ($m_H$) [GeV]")
 ax.set_title("Higgs Mass")
 ```
 
-* Possible values for `histtype`: fill, step, errorbar, band, bar, barstep. Anything else will cause an error. By default use `fill`.
-* Titles and axes labels can contains `LaTeX` (and should for `eta` ($\eta$) and `pt` ($p_{T}$)). If you are using a f-string or `str.format(...)` that the curly LaTeX braces must be escaped.
+- Possible values for `histtype`: fill, step, errorbar, band, bar, barstep.
+  Anything else will cause an error. By default use `fill`.
+- Titles and axes labels can contains `LaTeX` (and should for `eta` ($\eta$) and
+  `pt` ($p_{T}$)). If you are using a f-string or `str.format(...)` that the
+  curly LaTeX braces must be escaped.
 
 ## Plotting a 2D histogram
 
@@ -117,13 +134,17 @@ fig.savefig("histogram.png")
 plt.close(fig)
 ```
 
-* You can also use `fig.savefig(...)`, of course, if you have the `fig` from making sub plots.
-* `plt.close(fig)` the figure after saving it to a file to free up memory.
-* Do not change the `dpi` with other arguments - just provide the filename argument to `savefig`.
+- You can also use `fig.savefig(...)`, of course, if you have the `fig` from
+  making sub plots.
+- `plt.close(fig)` the figure after saving it to a file to free up memory.
+- Do not change the `dpi` with other arguments - just provide the filename
+  argument to `savefig`.
 
 ## Notes
 
-* Keep histogram titles short - otherwise they are larger than the histogram itself. For example, don't include the dataset name in the overall plot title (e.g. `plt.title` or `ax.set_title`).
-  * Good: "Jet $p_T$
-  * Bad: "Jet $p_T$ in Data18 With Eta Cut"
-* Place extra information in the legend or write it on the plot somewhere.
+- Keep histogram titles short - otherwise they are larger than the histogram
+  itself. For example, don't include the dataset name in the overall plot title
+  (e.g. `plt.title` or `ax.set_title`).
+  - Good: "Jet $p_T$"
+  - Bad: "Jet $p_T$ in Data18 With Eta Cut"
+- Place extra information in the legend or write it on the plot somewhere.

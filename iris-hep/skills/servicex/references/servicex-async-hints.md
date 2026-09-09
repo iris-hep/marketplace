@@ -4,7 +4,8 @@ Load this only when async execution is explicitly requested.
 
 ## Async `deliver_async` with timeout
 
-Use `asyncio.wait_for(...)` to bound runtime and keep `ignore_local_cache=True` behavior explicit.
+Use `asyncio.wait_for(...)` to bound runtime and keep `ignore_local_cache=True`
+behavior explicit.
 
 ```python
 import asyncio
@@ -48,5 +49,7 @@ async def run_deliver_async(spec: ServiceXSpec, timeout_seconds: int = 600) -> A
 
 ## Version compatibility guidance
 
-- Some `servicex` versions expose only `deliver` and not top-level `deliver_async`.
-- When async APIs are unavailable, use sync `deliver` fallback (and for Linux timeout behavior, use the sync timeout recipe in `servicex-hints.md`).
+- Some `servicex` versions expose only `deliver` and not top-level
+  `deliver_async`.
+- When async APIs are unavailable, use sync `deliver` fallback (and for Linux
+  timeout behavior, use the sync timeout recipe in `servicex-hints.md`).
