@@ -6,10 +6,23 @@
 
 {{List all the data samples that are needed for this work below in the table. If the dataset has been explicitly named, include that too so the information is not lost.}}
 
-| Data Sample | Derivation | Role(s) In Analysis |
-| --- | --- | --- |
-| {{ds 1}} | {{PHYS/PHYSLITE/LLM1, etc. Leave blank unless told by dataset name or user}} | {{Signal/Background, Control Region, etc.}} |
-| {{ds 2}} | {{PHYS/PHYSLITE/LLM1, etc. Leave blank unless told by dataset name or user}} | {{Signal/Background, Control Region, etc.}} |
+| Data Sample | Role(s) In Analysis |
+| --- | --- |
+| {{ds 1}} | {{Signal/Background, Control Region, etc. Plus short description of how used}} |
+| {{ds 2}} | {{Signal/Background, Control Region, etc. Plus short description of how used}} |
+
+## Data Required
+
+Below is a list of the specific data we need from each data set above
+
+{{ds 1}}, {{ds 2}}
+
+* {{jet pt, eta, phi, width}}
+
+## Triggers
+
+* {{trigger 1}} - {{Signal Trigger - cuts are x, y z}}
+* {{trigger 2}} - {{Control Region 1 Trigger - cuts are x, y z}}
 
 ## Histograms
 
@@ -55,12 +68,3 @@
 ## Statistical Analysis
 
 {{List the statistical analysis (if any) that needs to be done on the previous data}}
-
-## Tools
-
-{{This section is a series of bullet points giving some guidance to the tools that should be used to accomplish previous parts.}}
-
-* {{tool 1}}
-  * {{Any comments about its usage}}
-* {{Tool 2}}
-  * ...

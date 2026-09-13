@@ -4,9 +4,17 @@ Plot the missing transverse energy (ETmiss) distribution for all events in the s
 
 ## Data Samples
 
-| Data Sample | Derivation | Role(s) In Analysis |
+| Data Sample | Role(s) In Analysis |
 | --- | --- | --- |
-| user.zmarshal:user.zmarshal.364702_OpenData_v1_p6026_2024-04-23 | PHYSLITE | Data |
+| W+Jets Dataset | Data |
+
+## Data Required
+
+Below is a list of the specific data we need from each data set above
+
+W+Jets Dataset
+
+* Missing ET
 
 ## Histograms
 
@@ -36,16 +44,7 @@ Plot the missing transverse energy (ETmiss) distribution for all events in the s
 
 None.
 
-## Tools
-
-* servicex
-  * Use func_adl to access the specified dataset and retrieve ETmiss.
-* awkward
-  * Event-level array handling.
-* hist
-  * Fill and store histogram as PNG.
-* vector
-  * Not required unless ETmiss needs vector construction; only use if needed.
+Example 2:
 
 # Trijet Top Candidate pT and Max b-tag in Closest-mass Trijet
 
@@ -53,9 +52,9 @@ Select events with at least three jets and, per event, build all trijet combinat
 
 ## Data Samples
 
-| Data Sample | Derivation | Role(s) In Analysis |
+| Data Sample  | Role(s) In Analysis |
 | --- | --- | --- |
-| opendata:mc20_13TeV.410471.PhPy8EG_A14_ttbar_hdamp258p75_allhad.deriv.DAOD_PHYSLITE.e6337_s3681_r13167_p6026 | PHYSLITE | Signal (ttbar all-hadronic) |
+| PHYSLITE | Signal (ttbar all-hadronic) |
 
 ## Histograms
 
@@ -99,26 +98,15 @@ Select events with at least three jets and, per event, build all trijet combinat
 
 None.
 
-## Tools
-
-* servicex (func_adl)
-  * Extract PHYSLITE jets and apply event/jet filtering.
-* awkward
-  * Build combinations and select closest-mass trijet.
-* vector
-  * Compute trijet four-momenta, mass, and pT.
-* hist
-  * Fill and save histograms as PNG.
-
 # Reconstructed $t\bar{t}$ Mass Near 3 TeV (Single-Lepton Channel)
 
 Plot the reconstructed $t\bar{t}$ invariant mass near 3 TeV in single-lepton events from the specified Rucio dataset.
 
 ## Data Samples
 
-| Data Sample | Derivation | Role(s) In Analysis |
+| Data Sample | Role(s) In Analysis |
 | --- | --- | --- |
-| user.zmarshal:user.zmarshal.301333_OpenData_v1_p6026_2024-04-23 | PHYSLITE | Data (signal region) |
+| user.zmarshal:user.zmarshal.301333_OpenData_v1_p6026_2024-04-23 | Data (signal region) |
 
 ## Histograms
 
@@ -160,14 +148,3 @@ Plot the reconstructed $t\bar{t}$ invariant mass near 3 TeV in single-lepton eve
 ## Statistical Analysis
 
 No statistical analysis required beyond the histogram.
-
-## Tools
-
-* servicex (func_adl)
-  * Query and skim the PHYSLITE dataset from Rucio.
-* awkward
-  * Event-level selection, combinatorics, and array operations.
-* vector
-  * Four-vector reconstruction and invariant mass calculations.
-* hist
-  * Histogramming and PNG output.
