@@ -8,6 +8,11 @@ Plot the missing transverse energy (ETmiss) distribution for all events in the s
 | --- | --- | --- |
 | W+Jets Dataset | Data |
 
+## Backgrounds
+
+{{List each background that was seen, and the size of the background (if known, or relative sizes).
+This helps decide the importance of each and what we should concentrate on downstream.}}
+
 ## Data Required
 
 Below is a list of the specific data we need from each data set above
