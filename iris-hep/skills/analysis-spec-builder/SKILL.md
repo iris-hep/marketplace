@@ -33,7 +33,7 @@ First classify the task into one of these modes:
 
 ## Workflow
 
-1. Read the template from `./assets/analysis-specification-template.md` (relative to this file, in the `analysis-spec-building` subdirectory).
+1. Read the template from `./assets/analysis-specification-template.md` (relative to this file, in the `analysis-spec-builder` subdirectory).
 2. Read all user-provided source material that is relevant to the requested analysis.
 3. Identify the analysis intent before extracting implementation details:
    - target physics/process or measurement,
@@ -184,9 +184,9 @@ For a simple one-plot or small direct analysis, use a lightweight version of thi
 
 ## Follow-up Questions
 
-Instead of asking the user questions, please make a best-effort attempt to fill in the specification from the source and any other information provided.
+Make a best-effort attempt to fill in the specification from the source and any other information provided before asking questions. Ask only about missing details that materially change the physics definition, control or validation logic, normalization, or statistical interpretation.
 
-In the section labeled `## For Review` please list the assumptions you made due to missing information. That way the user can review the choices and modify them later if needed.
+In the section labeled `## For Review`, list the assumptions you made due to non-critical missing information so the user can review and modify them later if needed.
 
 - Group questions by topic.
 - Do not ask about low-level implementation details that belong to a later planning stage.
