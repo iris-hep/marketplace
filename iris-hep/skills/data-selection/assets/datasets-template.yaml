@@ -1,0 +1,41 @@
+$schema: "./datasets.schema.json"
+schema_version: "0.2.0"
+
+analysis:
+  name: "<analysis name>"
+  experiment: "ATLAS"
+  collision_era: "Run 3"
+  collision_energy_tev: 13.6
+  data_taking_years: []
+  mc_campaigns: []
+
+# Each key is a stable analysis-level sample identifier.
+datasets:
+  ttbar:
+    source:
+      type: rucio
+      did: "mc23_13p6TeV:mc23_13p6TeV.601229.<complete-dataset-name>"
+      did_type: dataset
+
+    metadata:
+      experiment: ATLAS
+      process: ttbar
+      data_type: mc
+      collision_era: "Run 3"
+      collision_energy_tev: 13.6
+      campaign: mc23c
+      dsid: 601229
+      derivation: DAOD_PHYSLITE
+      cross_section_pb: null
+      filter_efficiency: null
+      k_factor: null
+      generator: null
+      production_tags:
+        e: null
+        s: null
+        r: null
+        p: null
+
+    data_format:
+      type: ROOT
+      object: CollectionTree

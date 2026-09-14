@@ -1,0 +1,111 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:iris-hep:analysis-datasets:0.2.0",
+  "title": "Experiment-neutral analysis dataset specification",
+  "type": "object",
+  "required": ["$schema", "schema_version", "analysis", "datasets"],
+  "properties": {
+    "$schema": {"type": "string"},
+    "schema_version": {"const": "0.2.0"},
+    "analysis": {
+      "type": "object",
+      "required": ["name", "experiment", "collision_era"],
+      "properties": {
+        "name": {"type": "string", "minLength": 1},
+        "experiment": {"type": "string", "minLength": 1},
+        "collision_era": {"type": "string", "minLength": 1},
+        "collision_energy_tev": {"type": ["number", "null"], "exclusiveMinimum": 0},
+        "data_taking_years": {"type": "array", "items": {"type": ["integer", "string"]}},
+        "mc_campaigns": {"type": "array", "items": {"type": "string"}}
+      },
+      "additionalProperties": true
+    },
+    "datasets": {
+      "type": "object",
+      "minProperties": 1,
+      "propertyNames": {"pattern": "^[a-z0-9][a-z0-9_-]*$"},
+      "additionalProperties": {"$ref": "#/$defs/dataset"}
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "source": {
+      "oneOf": [
+        {
+          "type": "object",
+          "required": ["type", "did"],
+          "properties": {
+            "type": {"const": "rucio"},
+            "did": {"type": "string", "pattern": "^[^:]+:.+$"},
+            "did_type": {"enum": ["container", "dataset", "file", "unknown"]}
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": ["type", "dataset"],
+          "properties": {
+            "type": {"const": "cms_das"},
+            "dataset": {"type": "string", "pattern": "^/.+/.+/.+$"}
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": ["type", "uris"],
+          "properties": {
+            "type": {"const": "files"},
+            "uris": {
+              "type": "array",
+              "minItems": 1,
+              "items": {"type": "string", "minLength": 1}
+            }
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
+    "metadata": {
+      "type": "object",
+      "required": ["process", "data_type"],
+      "properties": {
+        "experiment": {"type": "string"},
+        "process": {"type": "string", "minLength": 1},
+        "data_type": {"enum": ["data", "mc", "embedded"]},
+        "collision_era": {"type": "string"},
+        "collision_energy_tev": {"type": ["number", "null"], "exclusiveMinimum": 0},
+        "campaign": {"type": ["string", "null"]},
+        "year": {"type": ["integer", "string", "null"]},
+        "dsid": {"type": ["integer", "null"], "minimum": 0},
+        "run_range": {"type": ["string", "null"]},
+        "derivation": {"type": ["string", "null"]},
+        "cross_section_pb": {"type": ["number", "null"], "minimum": 0},
+        "filter_efficiency": {"type": ["number", "null"], "minimum": 0, "maximum": 1},
+        "k_factor": {"type": ["number", "null"], "minimum": 0},
+        "generator": {"type": ["string", "null"]},
+        "production_tags": {"type": "object"}
+      },
+      "additionalProperties": true
+    },
+    "data_format": {
+      "type": "object",
+      "required": ["type"],
+      "properties": {
+        "type": {"enum": ["ROOT", "Parquet", "HDF5", "other"]},
+        "object": {"type": ["string", "null"]},
+        "schema": {"type": ["string", "null"]}
+      },
+      "additionalProperties": true
+    },
+    "dataset": {
+      "type": "object",
+      "required": ["source", "metadata", "data_format"],
+      "properties": {
+        "source": {"$ref": "#/$defs/source"},
+        "metadata": {"$ref": "#/$defs/metadata"},
+        "data_format": {"$ref": "#/$defs/data_format"}
+      },
+      "additionalProperties": false
+    }
+  }
+}
