@@ -28,7 +28,7 @@ A downstream RDF, Coffea, ServiceX, AnalysisBase, or other adapter resolves the 
 
 Record the experiment, Run 2, Run 3, or other collision era, collision energy, data-taking years, MC campaigns, and relevant reconstruction or calibration constraints before selecting datasets.
 
-Do not silently translate a Run-2 list into Run 3. When the era is ambiguous and materially changes the selection, ask one focused question. Keep separate records when campaigns, derivations, or normalization metadata differ.
+If the analysis is not requested to focus on a certain run period, assume Run 3.
 
 Use authoritative catalog information where available. Preserve complete scope-qualified Rucio DIDs, exact production tags, campaign names, DSIDs or run ranges, and normalization metadata. Unknown values should be omitted or null, never invented.
 
@@ -67,7 +67,7 @@ Before delivering datasets.yaml:
 - resolve every selected sample to an authoritative logical identifier;
 - confirm era, campaign, reconstruction, derivation, and normalization compatibility;
 - review any empirical derivation evidence in its separate notebook or report;
-- ensure unresolved questions that could change dataset identity are settled or report that the specification remains incomplete;
+- ensure unresolved questions that could change dataset identity are reported along with your assumptions;
 - remove every execution-specific field;
 - validate the YAML against the bundled JSON Schema.
 
