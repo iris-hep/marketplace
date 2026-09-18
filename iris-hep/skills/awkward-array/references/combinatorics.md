@@ -1,6 +1,7 @@
 # Combinatorics for Multi-Object Quantities
 
-Use combinatorics when you need same-sized arrays for pairwise or n-way calculations.
+Use combinatorics when you need same-sized arrays for pairwise or n-way
+calculations.
 
 ## ak.cartesian
 
@@ -17,4 +18,6 @@ combo = ak.combinations(jets, 3, fields=["j1", "j2", "j3"], axis=1)
 ```
 
 Notes:
-- Use combinatorics before DeltaR or invariant mass calculations when objects per event are mismatched.
+
+- Use combinatorics before DeltaR or invariant mass calculations when objects
+  per event are mismatched.

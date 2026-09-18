@@ -2,7 +2,8 @@
 
 ## 1) UHI indexing and rebinning
 
-- Use complex numbers for bin selection (e.g., `5j` selects the bin containing 5).
+- Use complex numbers for bin selection (e.g., `5j` selects the bin containing
+  5).
 - Use complex ranges for slices (e.g., `0.3j:`).
 - Rebin with a complex step (e.g., `::2j` rebins by 2).
 - Project with `h.project("axis_name")` to reduce dimensionality.
@@ -18,8 +19,8 @@ h_rebin = h[0.3j:, ::2j]
 ## 2) Plotting conventions
 
 - Use `plt.subplots()` without specifying `figsize` unless explicitly requested.
-- Use `hist.plot(histtype="fill")` for 1D; allowed `histtype` values are
-  `fill`, `step`, `errorbar`, `band`, `bar`, `barstep`.
+- Use `hist.plot(histtype="fill")` for 1D; allowed `histtype` values are `fill`,
+  `step`, `errorbar`, `band`, `bar`, `barstep`.
 - Use `mplhep.hist2dplot(h)` for 2D plots.
 
 ## 3) Label and LaTeX gotchas

@@ -1,48 +1,109 @@
 ---
 name: hist
-description: Use when working with the scikit-hep hist library in Python to create, fill, slice, and plot histograms (1D/2D/multi-axis), including UHI indexing, categorical axes, and mplhep plotting conventions.
+description: >-
+  Use when creating, filling, slicing, or plotting histograms with the
+  scikit-hep hist library: defining axes (Regular, Variable, StrCategory),
+  filling with weighted data, using UHI indexing (loc, rebin, sum), applying
+  mplhep ATLAS style, producing ratio panels for data/MC comparisons, or
+  projecting multi-dimensional histograms.
 ---
 
 # Hist
 
 ## Overview
 
-Use this skill to build and manipulate hist.Hist objects, choose axis/storage types, fill with data and weights, and produce publication-style plots with mplhep styles, all based on matplotlib.
+`hist` is the scikit-hep histogram library built on top of `boost-histogram`. It
+provides a `Hist` class with named axes, Unified Histogram Indexing (UHI),
+direct plotting via `mplhep`, and easy conversion to pyhf workspaces. Always use
+`Hist` (not raw `bh.Histogram`) for analysis work.
 
-## Quick start
+## When to Use
 
-- Create histograms with `Hist.new` plus axis builders (`Reg`, `Var`, `StrCat`) and finish with exactly one storage (`Int64` or `Weight`).
-- Make sure axis labels contain a short variable name and units. Histogram titles should contains a slightly longer concise description of what data went into the plot.
-- Fill with `.fill(...)` using axis names; note that `.fill` returns `None`.
-- Slice or project with UHI indexing (e.g., `h.project("x")` or `h[{"x": 5j}]`).
-- Plot with `hist.plot(...)` or `mplhep.hist2dplot(...)`; use `plt.style.use(hep.style.ATLAS)` for HEP-style plots.
+- Building any 1D or 2D histogram in a Python analysis
+- Filling histograms from awkward or numpy arrays (with or without weights)
+- Plotting with ATLAS style (`mplhep.style.ATLAS`)
+- Slicing, rebinning, or summing axes before plotting
+- Converting to pyhf workspace JSON via `cabinetry`
 
-## Core tasks
+## Key Concepts
 
-### Create axes and storage
+| Axis type                                             | Use case                           |
+| ----------------------------------------------------- | ---------------------------------- |
+| `hist.axis.Regular(n, lo, hi, name=..., label=...)`   | Uniform binning                    |
+| `hist.axis.Variable([edges], name=..., label=...)`    | Non-uniform bins                   |
+| `hist.axis.StrCategory([...], name=..., growth=True)` | String labels (regions, samples)   |
+| `hist.axis.IntCategory([...], name=...)`              | Integer labels (run numbers, etc.) |
 
-- Use `Reg` for uniform bins and `Var` for variable-width bins.
-- Use `StrCat` for categorical axes; set `growth=True` for auto-added categories.
-- Choose storage: `Int64` for unweighted counts, `Weight` for weighted fills.
+UHI indexing: `h[loc(val)]` selects by value; `h[::rebin(2)]` rebins by 2;
+`h[sum]` sums over an axis.
 
-### Fill and access contents
+## Canonical Patterns
 
-- Fill with named axes (e.g., `h.fill(x=..., y=..., weight=...)`).
-- Read counts with `h.view()` and errors from `np.sqrt(h.variances())`.
+**Create and fill a 1D histogram**:
 
-### Slice, rebin, and project
+```python
+import hist, numpy as np
+h = hist.Hist(hist.axis.Regular(50, 0, 500, name="pt", label=r"$p_T$ [GeV]"))
+h.fill(pt=jet_pts_gev, weight=event_weights)
+```
 
-- Use UHI slicing (complex numbers for bin selection, `::2j` for rebinning).
-- Project with `h.project("axis_name")` for 1D plots.
+**Data/MC ratio panel**:
 
-### Plot and save
+```python
+fig, (ax_main, ax_ratio) = plt.subplots(
+    2, 1, gridspec_kw={"height_ratios": [3, 1]}, sharex=True
+)
+mplhep.histplot(h_mc, ax=ax_main, label="MC", histtype="fill")
+mplhep.histplot(h_data, ax=ax_main, label="Data", histtype="errorbar")
+ratio = h_data.values() / h_mc.values()
+ax_ratio.axhline(1, color="black", linewidth=0.8)
+ax_ratio.plot(h_mc.axes[0].centers, ratio, "k.")
+ax_ratio.set_ylim(0.5, 1.5)
+ax_ratio.set_ylabel("Data / MC")
+fig.savefig("jet_pt_ratio.pdf")
+```
 
-- Use `hist.plot(histtype="fill")` for 1D; use `mplhep.hist2dplot` for 2D.
-- Use `plt.subplots()` without custom `figsize` unless explicitly requested.
-- Save with `fig.savefig("name.png")` and close with `plt.close(fig)`.
+## Gotchas
+
+- **`flow=True` vs `flow=False`**: `Regular` axes have overflow/underflow by
+  default; `.values()` excludes them, `.values(flow=True)` includes them. `sum`
+  in UHI includes flow by default: `h[hist.sum]` sums all bins including
+  overflow; `h[1:-1].sum()` sums without overflow bins.
+- **Fill kwargs must match axis names**: `h.fill(pt=arr)` requires the axis was
+  named `"pt"`. Positional filling (`h.fill(arr)`) works for single-axis
+  histograms only.
+- **Weight keyword**: Always `weight=`, not a positional argument.
+- **`plot1d` vs `mplhep.histplot`**: `h.plot1d()` is a convenience wrapper;
+  `mplhep.histplot(h)` gives more control. For ratio panels, use
+  `mplhep.histplot` directly.
+- **Modifying filled histograms**: `Hist` objects are mutable; `h += other_h`
+  accumulates fills from multiple chunks.
+- **pT axes in GeV not MeV**: Divide by 1000 before filling if your NTuples
+  store MeV.
+
+## Interop
+
+- **awkward**: `ak.to_numpy(ak.flatten(arr))` → feed directly to `.fill()`
+- **pyhf / cabinetry**: build templates and a workspace with
+  `cabinetry.templates.build()` / `cabinetry.workspace.build()`; cabinetry reads
+  ROOT histograms via its `contrib.histogram_reader`
+- **mplhep**: `mplhep.style.use("ATLAS")` sets ATLAS plot style; all `histplot`
+  calls accept `Hist` natively
+- **numpy**: `h.values()` returns a numpy array; `h.axes[i].centers` gives bin
+  centers
 
 ## References
 
-- Use `references/hist-hints.md` for concrete code snippets and common patterns.
-- Use `references/hist-advanced.md` for UHI indexing, plotting gotchas, and label/LaTeX guidance.
-- Use `references/lhc-hist-ranges.md` for starting suggestions on histogram axis ranges and binning.
+- Use `references/hist-hints.md` for `Hist.new.Reg/Var/StrCat` QuickConstruct
+  syntax, filling and viewing counts/errors, multi-axis categorical histograms,
+  and mplhep 1D/2D plotting recipes.
+- Use `references/hist-advanced.md` for UHI indexing/rebinning syntax details,
+  allowed `histtype` values, LaTeX/label escaping gotchas, and the
+  `Int64`/`Weight` storage-type rule.
+- Use `references/lhc-hist-ranges.md` when picking bin counts or axis ranges
+  for ATLAS/LHC variables (jet pT, eta, phi, top/Higgs/W/Z/J/ψ mass windows,
+  missing ET, b-tagging discriminant) before you've looked at the data.
+
+## Docs
+
+https://hist.readthedocs.io/en/latest/

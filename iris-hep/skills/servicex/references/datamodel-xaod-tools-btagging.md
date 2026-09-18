@@ -1,23 +1,35 @@
 # xAOD Tool Access and B-Tagging
 
-Tools are C++ objects used by the framework that is actually extracting the data for servicex. The code is written by the ATLAS experiment. Helper functions are created by two methods,
+Tools are C++ objects used by the framework that is actually extracting the data
+for servicex. The code is written by the ATLAS experiment. Helper functions are
+created by two methods,
 
-- `make_a_tool` - defines the tool and schedules it to run in the C++ framework during the servicex translation.
-- `make_tool_accessor` defines a small light-weight function in C++ that will return a value from the tool.
+- `make_a_tool` - defines the tool and schedules it to run in the C++ framework
+  during the servicex translation.
+- `make_tool_accessor` defines a small light-weight function in C++ that will
+  return a value from the tool.
 
-These are defined in the `xaod_hints` module if you need to define special tools from user instructions. In many cases you find tool helpers. Examples below show you how to use these functions.
+These are defined in the `xaod_hints` module if you need to define special tools
+from user instructions. In many cases you find tool helpers. Examples below show
+you how to use these functions.
 
-**Critical naming rule:** the Python variable assigned by `make_tool_accessor`, its `function_name`, and the name called later in the `func_adl` query must be identical. For example, if the accessor is assigned to `tag_weight`, set `function_name="tag_weight"` and call `tag_weight(jet)`. If these names differ (for example, assigning to `tag_weight` but using `function_name="btagging_discriminant"`), the generated query can fail with an unknown type `tag_weight` error.
+Whenever you use these tool helpers, copy `xaod_hints.py` from the skill assets
+into the user's package source directory so imports work:
 
-Whenever you use these tool helpers, add the published `hep-llm-helpers>-1.0.0b1` dependency to the user's project so the helper imports correctly.
+```bash
+cp ./assets/xaod_hints.py /path/to/your/package/
+```
 
 ## BTaggingSelectionTool: getting jet b-tagging results
 
-The `BTaggingSelectionTool` tool gets either a tag weight/discriminant for b-or-charm tagging or a tagged/not-tagged result for a working point. The working points are provided by the FTAG group in ATLAS.
+The `BTaggingSelectionTool` tool gets either a tag weight/discriminant for
+b-or-charm tagging or a tagged/not-tagged result for a working point. The
+working points are provided by the FTAG group in ATLAS.
 
 Working Point Info:
 
-- Working point names: `FixedCutBEff_65`, `FixedCutBEff_70`, `FixedCutBEff_77`, `FixedCutBEff_85`, `FixedCutBEff_90`
+- Working point names: `FixedCutBEff_65`, `FixedCutBEff_70`, `FixedCutBEff_77`,
+  `FixedCutBEff_85`, `FixedCutBEff_90`
 - [Further information for user](https://ftag.docs.cern.ch/recommendations/algs/r22-preliminary/#gn2v01-b-tagging)
 - By default choose the `FixedCutBEff_77` working point.
 - Make sure to let the user know what operating point in your text explanation.
@@ -28,16 +40,18 @@ To define the tool you must:
 query = FuncADLQueryPHYSLITE()
 ```
 
-Make sure the `{tool_name}` is different if you need to define multiple tools (because user needs more than one operating point). Name them something reasonable so the code makes sense.
+Make sure the `{tool_name}` is different if you need to define multiple tools
+(because user needs more than one operating point). Name them something
+reasonable so the code makes sense.
 
 ```python
 # Specific for the below code
 from func_adl_servicex_xaodr25.xAOD.jet_v1 import Jet_v1
-from hep_llm_helpers.xaod_hints import make_a_tool, make_tool_accessor
+from xaod_hints import make_a_tool, make_tool_accessor
 
 # Define the tool. This passes `init_lines` for Run 3.
 query_base, tag_tool_info = make_a_tool(
-    physlite,
+    query,
     "{tool_name}",
     "BTaggingSelectionTool",
     include_files=["xAODBTaggingEfficiency/BTaggingSelectionTool.h"],
@@ -48,7 +62,6 @@ query_base, tag_tool_info = make_a_tool(
         # Uncomment the next 3 lines if you are running on ATLAS OpenData only
         # 'ANA_CHECK(asg::setProperty({tool_name}, "TaggerName", "DL1dv01"));',
         # 'ANA_CHECK(asg::setProperty({tool_name}, "FlvTagCutDefinitionsFileName", "xAODBTaggingEfficiency/13TeV/2022-22-13TeV-MC20-CDI-2022-07-28_v1.root"));',
-        # 'ANA_CHECK(asg::setProperty({tool_name}, "readFromBTaggingObject", true));',
 
         # This line must be run last no matter what type of data you are running on
         "ANA_CHECK({tool_name}->initialize());",
@@ -80,17 +93,7 @@ jet_is_tagged = make_tool_accessor(
 )
 ```
 
-For Open Data, uncomment all three Open Data configuration lines before the `initialize()` call. The OpenData release is older data, so needs some modifications to read the metadata for it.
-
-Usage of the accessors in `func_adl` is straightforward. The accessor name must be repeated exactly in the query:
-
-```python
-query = (query_base
-    .Select(lambda e: e.Jets().Select(lambda j: tag_weight(j)))
-)
-```
-
-For a boolean working-point result, use the matching `jet_is_tagged` name instead:
+Usage of `jet_is_tagged` in `func_adl` is straight forward:
 
 ```python
 query = (query_base
@@ -98,4 +101,10 @@ query = (query_base
 )
 ```
 
-Make sure to use `base_query` here: the `make_a_tool` must have been called on the query first.
+Make sure to use `query_base` here: the `make_a_tool` must have been called on
+the query first.
+
+Uncomment the OpenData initialization block (the three lines labeled "Uncomment
+the next 3 lines if you are running on ATLAS OpenData only") when processing
+OpenData; leave that block commented for standard ATLAS data. The first and last
+`init_lines` entries always apply regardless of data type.

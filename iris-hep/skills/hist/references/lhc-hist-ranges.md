@@ -1,6 +1,8 @@
 # Advice on Histogram binning and Limits for LHC variables
 
-It is difficult to do this without looking at the data first. But you need to come up with something if you've not seen the data. The following are rules of thumb:
+It is difficult to do this without looking at the data first. But you need to
+come up with something if you've not seen the data. The following are rules of
+thumb:
 
 ## Binning
 
@@ -8,10 +10,12 @@ Choose 50 bins as a good solid starting point for each axis
 
 ## Axis Limits
 
-The following are some guesses given we are at the LHC on the ATLAS experiment. Remember to track units!
+The following are some guesses given we are at the LHC on the ATLAS experiment.
+Remember to track units!
 
 - Jet energy and momenta: 0-300 GeV
-- Eta: from -4.5 to 4.5 (unless there are cuts applied, then you can make this tighter)
+- Eta: from -4.5 to 4.5 (unless there are cuts applied, then you can make this
+  tighter)
 - Phi: -pi to pi
 - Mass: Depends on the object you are aiming for.
   - Top Quark: Mass is 173 GeV, so 0 to 250 GeV

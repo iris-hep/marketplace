@@ -4,9 +4,9 @@ Some additional details beyond the simplest uses of `vector`.
 
 ## Registering Awkward Behaviors
 
-Always call `vector.register_awkward()` once at the start of a session so Awkward
-records named `Vector2D`, `Vector3D`, `Vector4D`, `Momentum3D`, `Momentum4D`, etc.
-pick up vector methods and properties.
+Always call `vector.register_awkward()` once at the start of a session so
+Awkward records named `Vector2D`, `Vector3D`, `Vector4D`, `Momentum3D`,
+`Momentum4D`, etc. pick up vector methods and properties.
 
 ```python
 import vector
@@ -15,8 +15,8 @@ vector.register_awkward()
 
 ## Building Vector Records with ak.zip
 
-Use `ak.zip` with `with_name` to tag records so vector behavior applies. Use standard
-field names so vector can infer coordinates.
+Use `ak.zip` with `with_name` to tag records so vector behavior applies. Use
+standard field names so vector can infer coordinates.
 
 ```python
 import awkward as ak
@@ -30,8 +30,9 @@ events = ak.Array({
 ```
 
 - Use `Momentum3D` for spatial calculations like deltaR.
-- Use `Momentum4D` for invariant mass or boosts.
-- Alternate field sets like `px`, `py`, `pz`, `E` also work.
+- Prefer `Momentum4D` when computing invariant mass or performing boosts.
+- Alternatively, provide fields `px`, `py`, `pz`, `E` — vector infers
+  coordinates from standard field names.
 
 ## deltaR Between Collections
 
@@ -47,5 +48,5 @@ Both inputs must be vector-behaving arrays with compatible lengths.
 
 ## Other Methods
 
-Vector provides many methods such as `cross` for cross products and other geometric
-operations. Refer to vector API docs for the full list when needed.
+Vector provides many methods such as `cross` for cross products and other
+geometric operations. Refer to vector API docs for the full list when needed.
