@@ -226,3 +226,46 @@ the datafiles, but is not.
   environment.
 - In standalone scripts using inline metadata, include `jinja2` explicitly if
   imports/runtime require it.
+
+## A Full UprootRaw Worked Example — Histogram from an NTuple Skim
+
+This example fetches a displaced-vertex signal NTuple with `UprootRaw`,
+applies a selection cut server-side, and plots two variables.
+
+```python
+import awkward as ak
+import matplotlib.pyplot as plt
+import uproot
+from servicex import deliver, ServiceXSpec, Sample, dataset, query
+
+ntuple_dataset = dataset.Rucio("user.atlas:my-displaced-signal.root")
+
+uproot_query = query.UprootRaw([{
+    "treename": "reco",
+    "filter_name": ["truth_alp_decayVtxX", "truth_alp_decayVtxY",
+                    "truth_alp_pt", "truth_alp_eta",
+                    "jet_EMFrac_NOSYS", "jet_pt_NOSYS"],
+    "cut": "(num(jet_pt_NOSYS) < 2) & any((truth_alp_pt > 20) & (abs(truth_alp_eta) < 0.8))",
+}])
+
+results = deliver(ServiceXSpec(
+    General={"OutputFormat": "root-rntuple"},
+    Sample=[Sample(Name="signal", Dataset=ntuple_dataset, Query=uproot_query, NFiles=1)],
+))
+
+arrays = []
+for path in results["signal"]:
+    with uproot.open(path) as f:
+        arrays.append(f["reco"].arrays(library="ak"))
+arr = ak.concatenate(arrays)
+
+displacement = (arr["truth_alp_decayVtxX"] ** 2 + arr["truth_alp_decayVtxY"] ** 2) ** 0.5
+
+fig, axes = plt.subplots(1, 2, figsize=(9, 4))
+axes[0].hist(ak.flatten(arr["jet_EMFrac_NOSYS"]), bins=50, range=[0, 1])
+axes[0].set_xlabel("EM Fraction")
+axes[1].hist(ak.flatten(displacement), bins=50, range=[0, 5000], color="g")
+axes[1].set_xlabel("Decay Vertex Displacement (mm)")
+plt.tight_layout()
+plt.show()
+```

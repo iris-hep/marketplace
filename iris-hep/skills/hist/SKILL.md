@@ -47,40 +47,6 @@ h = hist.Hist(hist.axis.Regular(50, 0, 500, name="pt", label=r"$p_T$ [GeV]"))
 h.fill(pt=jet_pts_gev, weight=event_weights)
 ```
 
-**2D histogram**:
-
-```python
-h2 = hist.Hist(
-    hist.axis.Regular(50, 0, 500, name="pt", label=r"$p_T$ [GeV]"),
-    hist.axis.Regular(30, -3, 3, name="eta", label=r"$\eta$"),
-)
-h2.fill(pt=jet_pts, eta=jet_etas)
-```
-
-**UHI slicing — select a range and rebin**:
-
-```python
-h_central = h[100j:400j]      # values between 100 and 400 (j suffix = value not index)
-h_coarse  = h[::hist.rebin(2)]  # rebin by factor 2
-```
-
-**Project a 2D histogram**:
-
-```python
-h_pt_only = h2.project("pt")   # marginalise over eta
-```
-
-**Plot with ATLAS style**:
-
-```python
-import matplotlib.pyplot as plt, mplhep
-mplhep.style.use("ATLAS")
-fig, ax = plt.subplots()
-h.plot1d(ax=ax)
-ax.set_xlabel(r"$p_T$ [GeV]")
-fig.savefig("jet_pt.pdf")
-```
-
 **Data/MC ratio panel**:
 
 ```python
@@ -97,18 +63,12 @@ ax_ratio.set_ylabel("Data / MC")
 fig.savefig("jet_pt_ratio.pdf")
 ```
 
-**Sum over a flow-aware axis**:
-
-```python
-total = h[hist.sum]        # sum all bins including overflow
-no_overflow = h[1:-1].sum()  # sum without overflow bins
-```
-
 ## Gotchas
 
 - **`flow=True` vs `flow=False`**: `Regular` axes have overflow/underflow by
   default; `.values()` excludes them, `.values(flow=True)` includes them. `sum`
-  in UHI includes flow by default.
+  in UHI includes flow by default: `h[hist.sum]` sums all bins including
+  overflow; `h[1:-1].sum()` sums without overflow bins.
 - **Fill kwargs must match axis names**: `h.fill(pt=arr)` requires the axis was
   named `"pt"`. Positional filling (`h.fill(arr)`) works for single-axis
   histograms only.
@@ -131,6 +91,18 @@ no_overflow = h[1:-1].sum()  # sum without overflow bins
   calls accept `Hist` natively
 - **numpy**: `h.values()` returns a numpy array; `h.axes[i].centers` gives bin
   centers
+
+## References
+
+- Use `references/hist-hints.md` for `Hist.new.Reg/Var/StrCat` QuickConstruct
+  syntax, filling and viewing counts/errors, multi-axis categorical histograms,
+  and mplhep 1D/2D plotting recipes.
+- Use `references/hist-advanced.md` for UHI indexing/rebinning syntax details,
+  allowed `histtype` values, LaTeX/label escaping gotchas, and the
+  `Int64`/`Weight` storage-type rule.
+- Use `references/lhc-hist-ranges.md` when picking bin counts or axis ranges
+  for ATLAS/LHC variables (jet pT, eta, phi, top/Higgs/W/Z/J/ψ mass windows,
+  missing ET, b-tagging discriminant) before you've looked at the data.
 
 ## Docs
 

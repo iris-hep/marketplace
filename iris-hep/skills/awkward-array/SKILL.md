@@ -51,26 +51,6 @@ good_jets = jets[jets.pt > 25_000]                    # per-object mask, MeV
 events_ok = good_jets[ak.num(good_jets) >= 2]         # per-event mask
 ```
 
-**All unique pairs per event**:
-
-```python
-combos = ak.combinations(jets, 2, axis=1)
-j1, j2 = ak.unzip(combos)
-```
-
-**Leading object per event (keepdims is required for slicing)**:
-
-```python
-lead_idx = ak.argmax(jets.pt, axis=1, keepdims=True)
-lead = ak.firsts(jets[lead_idx])   # None for empty events
-```
-
-**Add a derived field**:
-
-```python
-jets = ak.with_field(jets, jets.pt / 1000, "pt_gev")
-```
-
 **Broadcast per-event weight to per-object for weighted fills**:
 
 ```python
@@ -102,6 +82,36 @@ h.fill(pt=ak.to_numpy(flat_pt), weight=ak.to_numpy(flat_w))
 - **hist**: Flatten arrays before `Hist.fill()`; broadcast weights first
 - **coffea**: NanoEvents columns are `ak.Array`; all coffea processors consume
   awkward natively
+
+## Reference guide
+
+Load only the reference files that match the task:
+
+- `references/best-practices.md`: use when deciding overall approach — filter
+  early, build the EDM with `ak.zip` then add derived fields, and when
+  `axis=None` is (and isn't) the right choice for a reducer.
+- `references/records.md`: use when combining parallel arrays into a record
+  with `ak.zip` or adding a field with `ak.with_field` (it returns a new
+  array, it doesn't mutate).
+- `references/filtering-aggregation.md`: use when choosing between `ak.sum`,
+  `ak.count`, and `ak.num`, or reasoning about `axis=None` reducer behavior.
+- `references/sorting.md`: use for `ak.sort` (`ascending=`, per-axis sorting).
+- `references/combinatorics.md`: use when building pairwise (`ak.cartesian`)
+  or n-way (`ak.combinations`) object combinations before invariant-mass or
+  deltaR calculations.
+- `references/argmin-argmax.md`: use when selecting the leading/trailing
+  object per event with `ak.argmax`/`ak.argmin` (`keepdims=True`) plus
+  `ak.firsts`.
+- `references/flattening.md`: use for `ak.flatten` axis rules — especially
+  the `axis=0` (drops only top-level `None`) vs `axis=1` (removes a list
+  level) distinction — and `ak.unflatten`.
+- `references/numpy-interop.md`: use when converting to NumPy (`ak.to_numpy`
+  regularity requirements, masked-array behavior for `None`) or relying on
+  NumPy ufunc dispatch.
+- `references/pitfalls.md`: use for missing-function traps (no `ak.abs`,
+  `ak.take`, `ak.expand_dims`) and the `ak.from_json` string-vs-path gotcha.
+- `references/awkward-files.md`: use for Parquet/JSON I/O patterns, including
+  the `ak.from_json` path-vs-string asymmetry.
 
 ## Docs
 

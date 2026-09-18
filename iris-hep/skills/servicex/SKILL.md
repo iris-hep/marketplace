@@ -118,163 +118,37 @@ for path in results["my_sample"]:
 ### FuncADL Backend (xAOD / PHYSLITE)
 
 ```python
-import uproot
 from servicex import deliver, ServiceXSpec, Sample, dataset
 from func_adl_servicex_xaodr25 import FuncADLQueryPHYSLITE
 
-rucio_dataset = dataset.Rucio(
-    "mc23_13p6TeV:mc23_13p6TeV.801167.Py8EG_A14NNPDF23LO_jj_JZ2"
-    ".deriv.DAOD_PHYSLITE.e8514_e8528_a911_s4114_r15224_r15225_p6697"
-)
-
-base_query = FuncADLQueryPHYSLITE()
-
 # Two-Select pattern: first collect objects, then extract columns
 jet_query = (
-    base_query
+    FuncADLQueryPHYSLITE()
     .Select(lambda e: {"jets": e.Jets()})
-    .Select(lambda c: {
-        "jet_pt":  c.jets.Select(lambda j: j.pt() / 1000.0),  # GeV
-        "jet_eta": c.jets.Select(lambda j: j.eta()),
-    })
+    .Select(lambda c: {"jet_pt": c.jets.Select(lambda j: j.pt() / 1000.0)})  # GeV
 )
 
-spec = ServiceXSpec(
-    Sample=[
-        Sample(
-            Name="jet_pt_fetch",
-            Dataset=rucio_dataset,
-            Query=jet_query,
-            NFiles=1,
-        )
-    ]
-)
-
-results = deliver(spec)
-
-# results["jet_pt_fetch"] is a list of local file paths — open with uproot
-for path in results["jet_pt_fetch"]:
-    with uproot.open(path) as f:
-        arr = f["servicex"].arrays(library="ak")
+results = deliver(ServiceXSpec(Sample=[
+    Sample(Name="jet_pt_fetch", Dataset=dataset.Rucio(rucio_did), Query=jet_query, NFiles=1),
+]))
+# results["jet_pt_fetch"] is a list of local file paths; the output tree is
+# always named "servicex" for FuncADL (vs. whatever `treename` you set for
+# UprootRaw). See references/servicex-hints.md for filtering, multiple
+# collections, and a full worked example with a real dataset DID.
 ```
-
-### Multiple Samples in One Call
-
-```python
-spec = ServiceXSpec(
-    General={"OutputFormat": "root-rntuple"},
-    Sample=[
-        Sample(Name="signal", Dataset=dataset.Rucio(sig_did), Query=q, NFiles=5),
-        Sample(Name="ttbar",  Dataset=dataset.Rucio(tt_did),  Query=q, NFiles=5),
-    ],
-)
-results = deliver(spec)
-# results["signal"] and results["ttbar"] are each lists of file paths
-```
-
-### Working with Result Files Directly
-
-For large datasets that don't fit in memory, use the file paths from `deliver`:
-
-```python
-file_paths = [str(p) for p in results["my_sample"]]
-# Then open with uproot, RDataFrame, etc.
-import uproot
-for path in file_paths:
-    with uproot.open(path) as f:
-        arr = f["reco"].arrays()
-```
-
-### Cache Bypass
-
-```python
-results = deliver(spec, ignore_local_cache=True)
-```
-
-### Output Format (UprootRaw)
-
-The default output is `root-ttree`, which can silently fail on PHYSLITE skims.
-Use `root-rntuple` instead:
-
-```python
-spec = ServiceXSpec(
-    General={"OutputFormat": "root-rntuple"},
-    Sample=[Sample(Name="data", Dataset=ds, Query=q, NFiles=1)],
-)
-```
-
-Allowed values: `root-rntuple`, `root-ttree`, `parquet`.
 
 ### URL Delivery (Remote Streaming)
 
-Instead of downloading files, receive URLs for direct remote access:
+Receive URLs for direct remote access instead of downloading files (these
+expire within ~7 days, so only use this for short-lived access):
 
 ```python
 spec = ServiceXSpec(
     General={"Delivery": "URLs"},
     Sample=[Sample(Name="data", Dataset=ds, Query=q, NFiles=1)],
 )
-results = deliver(spec)
-# results["data"] contains URLs rather than local paths
-# Open directly with uproot using xrootd or https
+results = deliver(spec)  # results["data"] contains URLs, not local paths
 ```
-
-**Warning**: URLs from the ServiceX server expire — typically within 7 days or
-less. Download the files if long-term access is needed.
-
-### CLI `--n-files` Pattern
-
-```python
-import typer
-app = typer.Typer()
-
-@app.command()
-def main(n_files: int = typer.Option(1, "-n", "--n-files", help="Files to process (0=all)")):
-    spec = ServiceXSpec(
-        Sample=[Sample(Name="data", Dataset=ds, Query=q, NFiles=n_files or None)]
-    )
-    results = deliver(spec)
-```
-
-## FuncADL: Filtering and Multiple Collections
-
-**Object-level filter (reduce data shipped):**
-
-```python
-query = (FuncADLQueryPHYSLITE()
-    .Select(lambda e: {"jets": e.Jets().Where(lambda j: j.pt() / 1000.0 > 30.0)})
-    .Select(lambda c: {"jet_pt": c.jets.Select(lambda j: j.pt() / 1000.0)})
-)
-```
-
-**Event-level filter:**
-
-```python
-query = (FuncADLQueryPHYSLITE()
-    .Where(lambda e: e.Jets().Where(lambda j: j.pt() / 1000.0 > 30.0).Count() >= 2)
-    .Select(lambda e: {"n_jets": e.Jets().Count()})
-)
-```
-
-**Multiple collections (electrons + muons):**
-
-```python
-query = (FuncADLQueryPHYSLITE()
-    .Select(lambda e: {
-        "ele": e.Electrons().Where(lambda e: e.pt() / 1000.0 > 30.0),
-        "mu":  e.Muons().Where(lambda m: abs(m.eta()) < 2.5),
-    })
-    .Select(lambda c: {
-        "ele_pt":  c.ele.Select(lambda e: e.pt() / 1000.0),
-        "ele_eta": c.ele.Select(lambda e: e.eta()),
-        "mu_pt":   c.mu.Select(lambda m: m.pt() / 1000.0),
-        "mu_eta":  c.mu.Select(lambda m: m.eta()),
-    })
-)
-```
-
-Any collection accessed in the second `Select` must be passed through from the
-first. Never nest a dictionary inside another dictionary — that causes a crash.
 
 ## Query Backend Selection
 
@@ -306,54 +180,12 @@ note that PHYSLITE has no uncalibrated objects.
 | Jets      | `e.Jets()`              |
 | Electrons | `e.Electrons()`         |
 | Muons     | `e.Muons()`             |
-| Taus      | `e.TauJets()`           |
+| Taus      | `e.TauJets("AnalysisTauJets")` |
 | Photons   | `e.Photons()`           |
 | MET       | `e.MissingET().First()` |
 
-`MissingET` is stored as a container holding a single object, so the accessor
-`e.MissingET()` returns a sequence — call `.First()` to get the term, then a
-method such as `.met()` (MeV): `e.MissingET().First().met() / 1000.0`. There is
-no `e.MissingETContainer()` accessor.
-
-## Worked Example — UprootRaw Histogram
-
-```python
-import awkward as ak
-import matplotlib.pyplot as plt
-import uproot
-from servicex import deliver, ServiceXSpec, Sample, dataset, query
-
-ntuple_dataset = dataset.Rucio("user.atlas:my-displaced-signal.root")
-
-uproot_query = query.UprootRaw([{
-    "treename": "reco",
-    "filter_name": ["truth_alp_decayVtxX", "truth_alp_decayVtxY",
-                    "truth_alp_pt", "truth_alp_eta",
-                    "jet_EMFrac_NOSYS", "jet_pt_NOSYS"],
-    "cut": "(num(jet_pt_NOSYS) < 2) & any((truth_alp_pt > 20) & (abs(truth_alp_eta) < 0.8))",
-}])
-
-results = deliver(ServiceXSpec(
-    General={"OutputFormat": "root-rntuple"},
-    Sample=[Sample(Name="signal", Dataset=ntuple_dataset, Query=uproot_query, NFiles=1)],
-))
-
-arrays = []
-for path in results["signal"]:
-    with uproot.open(path) as f:
-        arrays.append(f["reco"].arrays(library="ak"))
-arr = ak.concatenate(arrays)
-
-displacement = (arr["truth_alp_decayVtxX"] ** 2 + arr["truth_alp_decayVtxY"] ** 2) ** 0.5
-
-fig, axes = plt.subplots(1, 2, figsize=(9, 4))
-axes[0].hist(ak.flatten(arr["jet_EMFrac_NOSYS"]), bins=50, range=[0, 1])
-axes[0].set_xlabel("EM Fraction")
-axes[1].hist(ak.flatten(displacement), bins=50, range=[0, 5000], color="g")
-axes[1].set_xlabel("Decay Vertex Displacement (mm)")
-plt.tight_layout()
-plt.show()
-```
+See `references/datamodel-xaod-missing-et.md` and
+`references/datamodel-xaod-tau.md` for why MET and Taus need the extra call.
 
 ## Troubleshooting
 
@@ -414,6 +246,34 @@ plt.show()
   querying ServiceX
 - **atlasopenmagic**: Provides ATLAS Open Data dataset identifiers ready for use
   with `dataset.Rucio(...)` or `dataset.FileList([...])`
+
+## References
+
+- Load `references/servicex-hints.md` for the full FuncADL query-building
+  workflow (two-`Select` pattern, object- vs event-level filtering, choosing
+  the base query by dataset name, a full worked example for each backend, and
+  the "Transform completed with failures" → HELP USER error-handling rule).
+- Load `references/servicex-async-hints.md` only when async delivery is
+  explicitly requested (`deliver_async` with an `asyncio.wait_for` timeout
+  wrapper, and the version-compatibility fallback to sync `deliver`).
+- Load the relevant `references/datamodel-xaod-*.md` topic file(s) to keep
+  context small:
+  - `references/datamodel-xaod-units.md`: MeV→GeV and mm→m conversion rule
+    for all xAOD kinematic/distance quantities.
+  - `references/datamodel-xaod-objects.md`: accessing Jets/Electrons/Muons/
+    Photons at the event level and getting px/py/pz via `.p4()`.
+  - `references/datamodel-xaod-tau.md`: TauJets use a different accessor
+    (`e.TauJets("AnalysisTauJets")`) than other objects.
+  - `references/datamodel-xaod-missing-et.md`: MissingET is a one-element
+    sequence — call `.First()` before `.met()`/`.mpx()`/`.mpy()`.
+  - `references/datamodel-xaod-tlorentzvector.md`: TLorentzVector method
+    names (`Pt()`, `Eta()`, `DeltaR()`, etc.) for 4-vector objects.
+  - `references/datamodel-xaod-tools-btagging.md`: use for b-/c-tagging via
+    `BTaggingSelectionTool` (`make_a_tool`/`make_tool_accessor`, FTAG working
+    points, copying `assets/xaod_hints.py` into the user's package).
+  - `references/datamodel-xaod-event-weights.md`: use when combining MC
+    and/or data samples — MC event weight, cross-section scaling formula,
+    per-run luminosity table, and plot-annotation conventions.
 
 ## Docs
 

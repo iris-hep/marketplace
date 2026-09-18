@@ -80,14 +80,6 @@ j1, j2 = ak.unzip(combos)
 mjj = (j1 + j2).mass / 1000  # MeV → GeV
 ```
 
-**deltaR between every electron–jet pair (for overlap removal)**:
-
-```python
-pairs = ak.cartesian({"e": electrons, "j": jets}, axis=1)
-dr = pairs.e.deltaR(pairs.j)
-non_overlapping = jets[~ak.any(dr < 0.4, axis=1)]  # remove jets near any electron
-```
-
 **Boost to rest frame of a parent**:
 
 ```python
@@ -98,107 +90,22 @@ boosted = daughter.boost(-parent.to_beta3())
 **Explicit coordinate conversion (numerical precision)**:
 
 ```python
-# Access any coordinate regardless of how the vector was constructed
 v = vector.obj(px=3.0, py=4.0, pz=0.0, energy=5.0)
 v.pt   # reads rho — no copy, computed on the fly
-# Force storage in a different coordinate system to avoid repeated trig:
-v2 = v.to_rhophithetatau()  # returns new object in rho, phi, theta (polar angle) and tau coords
+v2 = v.to_rhophithetatau()  # force storage in a different coordinate system
 ```
 
 **Scalar Python object (`vector.obj`) — single vector or Numba use**:
 
 ```python
-# Scalar: useful for quick checks or as accumulators inside @nb.njit functions
 v = vector.obj(pt=30.0, phi=0.5, eta=1.2, mass=0.105)  # single muon
 print(v.px, v.py, v.pz, v.energy)
 ```
 
-`vector.obj` returns a plain Python object, not a NumPy array. It is slow in
-Python loops but compiles efficiently under `@nb.njit`. However, there is no
-performance advantage (and a likely disadvantage) when compiling a calculation
-on just a few vectors.
-
-**NumPy structured array (`vector.array`) — fixed-shape collections**:
-
-```python
-import numpy as np
-# vector.array wraps np.ndarray with vector methods via structured dtype
-muons = vector.array(
-    {"pt": np.array([30.0, 45.0]), "phi": np.array([0.5, -1.2]),
-     "eta": np.array([1.2, -0.8]), "mass": np.full(2, 0.105)}
-)
-print(muons.px, muons.energy)  # vectorized, operates on whole array
-```
-
-**Numba-compiled loop over awkward arrays — best for large ragged collections**:
-
-```python
-import numba as nb
-import numpy as np
-
-@nb.njit
-def sum_mass(array):
-    out = np.empty(len(array), np.float64)
-    for i, event in enumerate(array):
-        total = vector.obj(px=0.0, py=0.0, pz=0.0, E=0.0)
-        for vec in event:
-            total = total + vec
-        out[i] = total.mass
-    return out
-
-# array is a vector.Array (awkward) with Momentum4D records
-masses = sum_mass(array)
-```
-
-JIT compilation has a cold-start cost but can be significantly faster on large
-arrays; actual speedups depend on workload, hardware, and versions.
-
-**Symbolic vectors with SymPy — derive formulas or generate code**:
-
-```python
-import sympy
-
-# Symbols must be declared real=True; complex assumptions break trig simplifications
-x, y, z, t = sympy.symbols("x y z t", real=True)
-
-v = vector.VectorSympy4D(x=x, y=y, z=z, t=t)
-v.rho            # sqrt(x**2 + y**2)
-v.is_timelike()  # t**2 - x**2 - y**2 - z**2 > 0
-
-expr = v.boost(v.to_beta3()).t
-expr.simplify()                       # returns simplified SymPy expression
-expr.subs({x: 3, y: 2, z: 1, t: 10}) # substitute concrete values
-
-# Convert to Fortran/C/LaTeX for downstream use
-import sympy.printing.fortran
-print(sympy.printing.fortran.fcode(expr.simplify()))
-```
-
-**PyTree integration — flatten vector state for scipy/optree algorithms**:
-
-```python
-# Requires: pip install optree
-pytree = vector.register_pytree()  # one-time call; returns flatten/unflatten interface
-
-state = {
-    "position": vector.obj(x=1.0, y=2.0, z=3.0, t=0.0),
-    "momentum": vector.obj(x=0.0, y=10.0, z=0.0, t=14.0),
-}
-flat, treedef = pytree.flatten(state)   # flat is a plain list of 8 scalars
-reconstructed = pytree.unflatten(treedef, flat)  # round-trips exactly
-
-# Typical use: wrap scipy.integrate.solve_ivp so the integrator sees a 1D array
-def wrapped_solve(fun, t_span, y0, t_eval):
-    flat_y0, treedef = pytree.flatten(y0)
-    def flat_fun(t, flat_y):
-        state = pytree.unflatten(treedef, flat_y)
-        dstate_dt = fun(t, state)
-        flat_dstate_dt, _ = pytree.flatten(dstate_dt)
-        return flat_dstate_dt
-    from scipy.integrate import solve_ivp
-    sol = solve_ivp(flat_fun, t_span, flat_y0, t_eval=t_eval)
-    return pytree.unflatten(treedef, sol.y)
-```
+`vector.obj` returns a plain Python object, not a NumPy array — slow in
+Python loops, but compiles efficiently under `@nb.njit` (no advantage for
+just a few vectors, though). For NumPy-array, Numba-loop, SymPy-symbolic, or
+PyTree/scipy use, see `references/vector-advanced.md`.
 
 ## Gotchas
 
@@ -257,6 +164,17 @@ def wrapped_solve(fun, t_span, y0, t_eval):
 - **optree**: `vector.register_pytree()` enables flatten/unflatten of vector
   objects and nested structures containing them; integrates with
   `scipy.integrate`, optimizers, and any algorithm expecting a 1D numeric array
+
+## Reference Material
+
+- `references/vector-hints.md`: use for the baseline
+  `ak.zip(..., with_name=...)` record-building pattern, the `deltaR`
+  cartesian-pairing recipe, and a pointer to other vector methods like
+  `cross`.
+- `references/vector-advanced.md`: use when the user needs NumPy-array
+  vectors (`vector.array`), Numba-JIT-compiled loops over vector objects,
+  symbolic/SymPy vector algebra, or PyTree integration
+  (`vector.register_pytree()`) for `scipy`/optimizer workflows.
 
 ## Docs
 
