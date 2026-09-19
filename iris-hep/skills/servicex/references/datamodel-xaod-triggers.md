@@ -11,9 +11,25 @@ from func_adl_servicex_xaodr25 import tdt_chain_fired, tmt_match_object
 ```
 
 - `tdt_chain_fired("HLT_j30_...")` asks the Trigger Decision Tool whether the named chain passed for the current event. The argument is passed to the ATLAS tool, so a valid chain pattern can be used where appropriate.
-- `tmt_match_object("HLT_j30_...", jet, 0.2)` asks the Trigger Matching Tool whether an offline object is within the requested delta-R of an object accepted by that chain. It does not select events by itself; combine it with `tdt_chain_fired` when the event must have fired the chain.
+- `tmt_match_object("HLT_j30_...", jet, 0.2)` asks the Run 2 Trigger Matching Tool whether an offline object is within the requested delta-R of an object accepted by that chain. It does not select events by itself; combine it with `tdt_chain_fired` when the event must have fired the chain. It is not the matcher for Run 3 `HLTNav_Summary` navigation.
 
 The trigger helpers add the required C++ tools and libraries during translation. Do not replace them with an `awkward` operation inside the ServiceX query.
+
+## Identify Run 2 versus Run 3 navigation before matching
+
+The trigger decision is queried the same way in both navigation formats, but the offline-object matcher is different. Inspect the file before writing a matching query. On an authenticated Windows shell, the following checks the first file without delivering events:
+
+```powershell
+uvx --from git+https://github.com/ssl-hep/ServiceX_analysis_utils servicex-get-structure `
+  "mc23_13p6TeV:mc23_13p6TeV.801166.Py8EG_A14NNPDF23LO_jj_JZ1.deriv.DAOD_PHYSLITE.e8514_e8586_s4618_s4619_r17610_r17609_p7266_tid50426175_00" `
+  --filter-branch HLTNav_Summary
+```
+
+- If `HLTNav_Summary_*` appears, the file has Run 3 navigation. Use the `Trig::R3MatchingTool` template below.
+- If the file instead has `TrigNavigation`, `TrigMatch_*`, or `AnalysisTrigMatch_*`, it has Run 2 navigation. Use the imported `tmt_match_object` helper.
+- An empty result for `HLTNav_Summary` does not prove Run 2; inspect the other names as well. Authentication is required for this structure query.
+
+The MC23 PHYSLITE validation file used for these examples contains `HLTNav_Summary_DAODSlimmed` and `HLTNav_Summary_DAODSlimmedAux`, so it takes the Run 3 path.
 
 ## Filter events by a chain
 
@@ -148,6 +164,68 @@ names = sorted(set(events["fired_trigger"]))
 
 If no chain matches the pattern, `names` is empty. Preserve that result and check the pattern against the trigger naming convention before trying a broader pattern. A large list of strings can stress ROOT output and memory; use a narrower pattern or return booleans for a known chain when possible.
 
+## Run 3 offline-object matching template
+
+For a file with `HLTNav_Summary_*`, define a second callable backed by `Trig::R3MatchingTool`. The public API takes one `xAOD::IParticle`, a chain name, a delta-R threshold, and a `rerun` flag. The template passes `False` for `rerun`, which matches the navigation already stored in the DAOD. Keep this callable separate from `tmt_match_object`; the latter initializes the Run 2 `MatchFromCompositeTool`.
+
+```python
+import ast
+from typing import Tuple, TypeVar
+
+from func_adl import ObjectStream, func_adl_callable
+
+T = TypeVar("T")
+
+
+def _add_r3_matching_tool(s: ObjectStream[T]) -> ObjectStream[T]:
+    return s.MetaData(
+        {
+            "metadata_type": "inject_code",
+            "name": "run3_trigger_matching_tool",
+            "header_includes": [
+                "AsgTools/AnaToolHandle.h",
+                "TriggerMatchingTool/IMatchingTool.h",
+                "TriggerMatchingTool/R3MatchingTool.h",
+            ],
+            "private_members": [
+                "asg::AnaToolHandle<Trig::IMatchingTool> m_r3mt;",
+            ],
+            "instance_initialization": [
+                'm_r3mt("Trig::R3MatchingTool")',
+            ],
+            "initialize_lines": ["ANA_CHECK(m_r3mt.initialize());"],
+            "link_libraries": ["TriggerMatchingToolLib", "TrigDecisionToolLib"],
+        }
+    )
+
+
+def _r3_match_object_processor(
+    s: ObjectStream[T], a: ast.Call
+) -> Tuple[ObjectStream[T], ast.Call]:
+    new_s = s.MetaData(
+        {
+            "metadata_type": "add_cpp_function",
+            "name": "r3_match_object",
+            "include_files": [],
+            "arguments": ["trigger", "offline_object", "dr"],
+            "code": [
+                "auto result = m_r3mt->match(offline_object, trigger, dr, false);",
+            ],
+            "result_name": "result",
+            "return_type": "bool",
+        }
+    )
+    return _add_r3_matching_tool(new_s), a
+
+
+@func_adl_callable(_r3_match_object_processor)
+def r3_match_object(trigger: str, offline_object, dr: float = 0.2) -> bool:
+    """Return whether an offline object matches a Run 3 trigger object."""
+    ...
+```
+
+The [ATLAS `R3MatchingTool` header](https://atlas-sw-doxygen.web.cern.ch/atlas-sw-doxygen/atlas_main--Doxygen/docs/html/d3/d5f/R3MatchingTool_8h_source.html) documents the single-object overload as `match(recoObject, chain, matchThreshold, rerun)`. If the chain needs trigger re-execution, change the final argument deliberately and document that choice; do not silently use the Run 2 helper on a Run 3 file.
+
 ## Four common trigger questions
 
 The snippets below assume `dataset_name`, `base_query = FuncADLQueryPHYSLITE()`, and the normal `deliver` setup from `references/servicex-hints.md`.
@@ -215,7 +293,7 @@ Plot or histogram `ak.drop_none(leading_pt)`. If every selected event has zero j
 
 ### 4. Matched trigger-jet pT compared with all jet pT
 
-First require the chain to have fired. Then return both all offline jets and the subset within the matching cone. The same event supplies both distributions:
+First require the chain to have fired. Then return both all offline jets and the subset within the matching cone. The same event supplies both distributions. Choose the matcher from the navigation check above:
 
 ```python
 chain = "HLT_j30_momemfrac006_L1jJ160"
@@ -236,6 +314,23 @@ events = to_awk(deliver(ServiceXSpec(Sample=[Sample(
 all_pt = ak.flatten(events["all_jet_pt"])
 matched_pt = ak.flatten(events["matched_jet_pt"])
 ```
+
+For Run 3, replace only the matcher call in the query with the custom callable above:
+
+```python
+matching_query = (base_query
+    .Where(lambda e: tdt_chain_fired(chain))
+    .Select(lambda e: {"jets": e.Jets()})
+    .Select(lambda c: {
+        "all_jet_pt": c.jets.Select(lambda j: j.pt() / 1000.0),
+        "matched_jet_pt": c.jets
+            .Where(lambda j: r3_match_object(chain, j, 0.2))
+            .Select(lambda j: j.pt() / 1000.0),
+    })
+)
+```
+
+Do not include both matcher tools in one query while debugging navigation-format problems. Keep the event decision as `tdt_chain_fired(chain)` in either version.
 
 Fill two histograms with the same GeV axis and overlay them. `matched_pt` may be empty even when the event fired; that is a valid matching result, not an instruction to substitute all jets. A zero-jet event contributes no entries to either flattened array.
 
