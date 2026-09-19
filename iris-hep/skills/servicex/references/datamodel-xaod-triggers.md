@@ -47,7 +47,7 @@ The following template initializes the same Trigger Decision Tool used by `tdt_c
 
 ```python
 import ast
-from typing import List, Tuple, TypeVar
+from typing import Iterable, Tuple, TypeVar
 
 from func_adl import ObjectStream, func_adl_callable
 
@@ -108,16 +108,18 @@ def _fired_trigger_names_processor(
 
 
 @func_adl_callable(_fired_trigger_names_processor)
-def fired_trigger_names(pattern: str) -> List[str]:
+def fired_trigger_names(pattern: str) -> Iterable[str]:
     """Return configured chains matching pattern that passed this event."""
     ...
 ```
 
-The Python return annotation and the metadata must describe a collection of strings. Keep the variable/function name `fired_trigger_names` unchanged between the decorator, definition, and query. The final ServiceX selection is a single dictionary:
+The Python return annotation and the metadata must describe a collection of strings. Keep the variable/function name `fired_trigger_names` unchanged between the decorator, definition, and query. A raw custom collection cannot be placed directly in a dictionary field. Flatten it with `SelectMany`, then return one scalar string per output row:
 
 ```python
-trigger_names_query = FuncADLQueryPHYSLITE().Select(
-    lambda e: {"fired_triggers": fired_trigger_names("EF_j.*")}
+trigger_names_query = (
+    FuncADLQueryPHYSLITE()
+    .SelectMany(lambda e: fired_trigger_names("EF_j.*"))
+    .Select(lambda name: {"fired_trigger": name})
 )
 ```
 
@@ -125,7 +127,7 @@ Use `"HLT_j.*"` for current HLT jet chains. The exact available prefix is data-t
 
 ## Delivery and returned layout
 
-Use one delivery with `NFiles=1` while developing. The trigger-name query returns one jagged string collection per event, so flatten and deduplicate it after delivery:
+Use one delivery with `NFiles=1` while developing. The flattened trigger-name query returns one scalar string row per fired trigger, so deduplicate those rows after delivery:
 
 ```python
 import awkward as ak
@@ -141,7 +143,7 @@ sample = Sample(
 )
 delivered = deliver(ServiceXSpec(Sample=[sample]))
 events = to_awk(delivered)["trigger_names"]
-names = sorted(set(name for event in events["fired_triggers"] for name in event))
+names = sorted(set(events["fired_trigger"]))
 ```
 
 If no chain matches the pattern, `names` is empty. Preserve that result and check the pattern against the trigger naming convention before trying a broader pattern. A large list of strings can stress ROOT output and memory; use a narrower pattern or return booleans for a known chain when possible.
@@ -176,17 +178,17 @@ Report `passed`, `examined`, and `fraction`; a one-file result is a validation m
 Use the name-list callable with a narrow prefix and deduplicate across events:
 
 ```python
-trigger_names_query = base_query.Select(
-    lambda e: {"fired_triggers": fired_trigger_names("EF_j.*")}
+trigger_names_query = (
+    base_query
+    .SelectMany(lambda e: fired_trigger_names("EF_j.*"))
+    .Select(lambda name: {"fired_trigger": name})
 )
 # Change only the pattern to "HLT_j.*" for HLT jet chains.
 events = to_awk(deliver(ServiceXSpec(Sample=[Sample(
     Name="jet_trigger_names", Dataset=dataset.Rucio(dataset_name),
     NFiles=1, Query=trigger_names_query
 )])))["jet_trigger_names"]
-fired_jet_chains = sorted(set(
-    name for event in events["fired_triggers"] for name in event
-))
+fired_jet_chains = sorted(set(events["fired_trigger"]))
 ```
 
 Do not return every configured trigger from a full dataset. If the output is empty, first inspect whether the file uses `HLT_j` rather than `EF_j` names.
@@ -240,3 +242,11 @@ Fill two histograms with the same GeV axis and overlay them. `matched_pt` may be
 ## Dependencies and checks
 
 For a standalone script, list `func_adl_servicex_xaodr25`, `servicex`, `servicex-analysis-utils`, `awkward`, `numpy`, and the plotting package in its PEP 723 dependency block. Keep `NFiles=1` until the query translates and the returned fields have been inspected. Check the generated C++ when introducing the name-list callable: it must contain the Trigger Decision Tool initialization, `getListOfTriggers`, and `isPassed(..., TrigDefs::Physics)`. If a transform fails after translation and the ServiceX logs are needed, follow the normal `HELP USER` path from the main ServiceX skill.
+
+For a disposable Windows smoke test, put the query in a temporary Python file and run it with the matching release package isolated by `uvx`:
+
+```powershell
+uvx --with func-adl-servicex-xaodr25 --with servicex --with servicex-analysis-utils --with awkward python .\trigger_test.py --mode discover
+```
+
+Use `func_adl_servicex_xaodr21` in the command instead when the target backend is Release 21. The query package and ServiceX xAOD executor must use the same release suffix.
