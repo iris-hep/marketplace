@@ -50,5 +50,6 @@ Provide concise, correct func_adl query patterns for ServiceX on ATLAS xAOD, wit
   - `references/datamodel-xaod-tau.md`
   - `references/datamodel-xaod-missing-et.md`
   - `references/datamodel-xaod-tools-btagging.md`
+  - `references/datamodel-xaod-triggers.md`
   - `references/datamodel-xaod-event-weights.md`
   - `references/datamodel-xaod-tlorentzvector.md`
