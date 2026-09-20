@@ -191,7 +191,7 @@ def _add_r3_matching_tool(s: ObjectStream[T]) -> ObjectStream[T]:
                 "asg::AnaToolHandle<Trig::IMatchingTool> m_r3mt;",
             ],
             "instance_initialization": [
-                'm_r3mt("Trig::R3MatchingTool")',
+                'm_r3mt("Trig::R3MatchingTool/R3MatchingTool")',
             ],
             "initialize_lines": ["ANA_CHECK(m_r3mt.initialize());"],
             "link_libraries": ["TriggerMatchingToolLib", "TrigDecisionToolLib"],
