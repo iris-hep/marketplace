@@ -31,6 +31,12 @@ uvx --from git+https://github.com/ssl-hep/ServiceX_analysis_utils servicex-get-s
 
 The MC23 PHYSLITE validation file used for these examples contains `HLTNav_Summary_DAODSlimmed` and `HLTNav_Summary_DAODSlimmedAux`, so it takes the Run 3 path.
 
+### What `L1RD0_FILLED` means
+
+`RD0` is an L1 random item. The `_FILLED` suffix applies the filled-bunch crossing requirement; it does not mean that the event contains a jet. A chain such as `HLT_j45_L1RD0_FILLED` therefore uses a random filled-bunch L1 seed and applies its jet requirement at HLT. The L1 seed can be prescaled, and the HLT chain can have a separate prescale. The chain name alone does not provide either prescale, so use the trigger menu or prescale metadata when a rate or efficiency needs to be interpreted.
+
+An event-level decision and object matching answer different questions. `tdt_chain_fired` asks whether the trigger decision says that the chain passed. `R3MatchingTool` additionally needs a usable trigger feature and link for the offline object in the stored navigation. A passed chain can therefore produce an empty matched offline collection in a derivation whose navigation is repacked or whose trigger feature is not link-compatible with the offline collection. Treat that as a navigation/content result until the stored feature links have been inspected; do not infer that the HLT found no jet from an empty matcher output.
+
 ## Filter events by a chain
 
 Use a top-level `Where` for an event decision. Keep the chain name in a Python variable so it can be changed without rewriting the query:
@@ -359,6 +365,10 @@ Do not include both matcher tools in one query while debugging navigation-format
 Fill two histograms with the same GeV axis and overlay them. `matched_pt` may be empty even when the event fired; that is a valid matching result, not an instruction to substitute all jets. A zero-jet event contributes no entries to either flattened array.
 
 For the MC23 PHYSLITE validation file described above, `HLT_j260_L1jJ125` fired in one selected event and `HLT_j45_L1RD0_FILLED` fired in 15,751 events, but the Run 3 matcher returned zero matched offline jets for both chains. Widening the matching cone from 0.2 to 0.7 did not change that result. This means the decision and matching queries are separate measurements; inspect the stored navigation and chain features before interpreting an empty matched collection as a physics conclusion.
+
+The same check on the corresponding PHYS JZ1 and JZ3 samples used `FuncADLQueryPHYS` with `e.Jets(calibrate=False)`. The default calibrated `e.Jets()` form failed remotely before delivering events; record the ServiceX request ID and obtain the worker log before diagnosing that as a query or trigger failure. With `calibrate=False`, the Run 3 matcher completed successfully and returned zero matched jets for `HLT_j45_L1RD0_FILLED` (15,754 passing events, 156,760 offline jets) and `HLT_j260_L1jJ125` (14,331 passing events, 154,128 offline jets).
+
+For a higher-slice stress test, the JZ4 PHYSLITE file `mc23_13p6TeV:mc23_13p6TeV.801169.Py8EG_A14NNPDF23LO_jj_JZ4.deriv.DAOD_PHYSLITE.e8514_e8586_s4618_s4619_r17610_r17609_p7266_tid50426195_00` had `HLT_j260_L1jJ125` passing in 59,935 of 60,000 examined events (99.89%). The successful matching delivery contained 658,848 offline jets and zero matched jets. A high trigger pass fraction therefore does not by itself prove that the derivation retained usable offline-to-trigger links.
 
 ## Dependencies and checks
 
