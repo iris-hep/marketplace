@@ -184,17 +184,34 @@ def _add_r3_matching_tool(s: ObjectStream[T]) -> ObjectStream[T]:
             "name": "run3_trigger_matching_tool",
             "header_includes": [
                 "AsgTools/AnaToolHandle.h",
+                "TrigConfInterfaces/ITrigConfigTool.h",
+                "TrigDecisionTool/TrigDecisionTool.h",
                 "TriggerMatchingTool/IMatchingTool.h",
                 "TriggerMatchingTool/R3MatchingTool.h",
             ],
             "private_members": [
+                "asg::AnaToolHandle<TrigConf::ITrigConfigTool> m_r3TrigConf;",
+                "asg::AnaToolHandle<Trig::TrigDecisionTool> m_r3TrigDec;",
                 "asg::AnaToolHandle<Trig::IMatchingTool> m_r3mt;",
             ],
             "instance_initialization": [
+                'm_r3TrigConf("TrigConf::xAODConfigTool/xAODConfigTool")',
+                'm_r3TrigDec("Trig::TrigDecisionTool/TrigDecisionTool")',
                 'm_r3mt("Trig::R3MatchingTool/R3MatchingTool")',
             ],
-            "initialize_lines": ["ANA_CHECK(m_r3mt.initialize());"],
-            "link_libraries": ["TriggerMatchingToolLib", "TrigDecisionToolLib"],
+            "initialize_lines": [
+                "ANA_CHECK(m_r3TrigConf.initialize());",
+                'ANA_CHECK(m_r3TrigDec.setProperty("ConfigTool", m_r3TrigConf.getHandle()));',
+                'ANA_CHECK(m_r3TrigDec.setProperty("TrigDecisionKey", "xTrigDecision"));',
+                "ANA_CHECK(m_r3TrigDec.initialize());",
+                'ANA_CHECK(m_r3mt.setProperty("TrigDecisionTool", m_r3TrigDec.getHandle()));',
+                "ANA_CHECK(m_r3mt.initialize());",
+            ],
+            "link_libraries": [
+                "TriggerMatchingToolLib",
+                "TrigDecisionToolLib",
+                "TrigConfInterfaces",
+            ],
         }
     )
 
@@ -225,6 +242,8 @@ def r3_match_object(trigger: str, offline_object, dr: float = 0.2) -> bool:
 ```
 
 The [ATLAS `R3MatchingTool` header](https://atlas-sw-doxygen.web.cern.ch/atlas-sw-doxygen/atlas_main--Doxygen/docs/html/d3/d5f/R3MatchingTool_8h_source.html) documents the single-object overload as `match(recoObject, chain, matchThreshold, rerun)`. If the chain needs trigger re-execution, change the final argument deliberately and document that choice; do not silently use the Run 2 helper on a Run 3 file.
+
+The matching tool owns a nested Trigger Decision Tool. Initialize an explicit config tool and TDT first, then pass its handle through `m_r3mt.setProperty("TrigDecisionTool", m_r3TrigDec.getHandle())` before initializing `m_r3mt`; otherwise the worker reports that the tool named `TrigDecisionTool` cannot be retrieved.
 
 ## Four common trigger questions
 
