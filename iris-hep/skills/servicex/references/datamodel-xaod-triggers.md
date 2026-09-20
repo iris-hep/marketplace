@@ -209,7 +209,7 @@ def _r3_match_object_processor(
             "include_files": [],
             "arguments": ["trigger", "offline_object", "dr"],
             "code": [
-                "auto result = m_r3mt->match(offline_object, trigger, dr, false);",
+                "auto result = m_r3mt->match(*offline_object, trigger, dr, false);",
             ],
             "result_name": "result",
             "return_type": "bool",
