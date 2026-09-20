@@ -258,6 +258,17 @@ The [ATLAS `R3MatchingTool` header](https://atlas-sw-doxygen.web.cern.ch/atlas-s
 
 The matching tool owns nested Trigger Decision and scoring tools. Initialize explicit config, TDT, and `Trig::DRScoringTool` handles first, then pass them through `m_r3mt.setProperty("TrigDecisionTool", m_r3TrigDec.getHandle())` and `m_r3mt.setProperty("ScoringTool", m_r3Score.getHandle())` before initializing `m_r3mt`; otherwise the worker cannot retrieve the default nested tools. For Run 3, the TDT also needs `NavigationFormat="TrigComposite"` and the exact `HLTSummary` branch stored by the input derivation. `HLTNav_Summary_DAODSlimmed` is correct for the PHYSLITE/PHYS validation files used here; use the branch discovered with `servicex-get-structure` for another derivation.
 
+These three TDT properties deliberately have different types:
+
+| Property | C++ property type | Value in the template |
+| --- | --- | --- |
+| `ConfigTool` | `ToolHandle`/`PublicToolHandle<TrigConf::ITrigConfigTool>` | `m_r3TrigConf.getHandle()`; this is the configured tool instance. |
+| `TrigDecisionKey` | `SG::ReadHandleKey<xAOD::TrigDecision>` | The StoreGate key string `"xTrigDecision"`. |
+| `NavigationFormat` | `Gaudi::Property<std::string>` | The format token `"TrigComposite"`, rather than a tool or data-object name. |
+| `HLTSummary` | `SG::ReadHandleKey<TrigCompositeUtils::DecisionContainer>` | The StoreGate key string for the summary container, such as `"HLTNav_Summary_DAODSlimmed"`. |
+
+The two key strings must match the data products in the input file, but they do not need to match the tool name or each other. The [TDT header](https://atlas-sw-doxygen.web.cern.ch/atlas-sw-doxygen/atlas_main--Doxygen/docs/html/d7/df7/TrigDecisionTool_8h_source.html) declares these properties and documents the allowed navigation-format tokens.
+
 ### The corresponding Python configuration
 
 In an Athena configuration, Python constructs the same tools and sets their Gaudi properties. It does not replace the C++ initialization in a standalone ServiceX transform: the transform worker must receive equivalent C++ metadata. The ATLAS Python helper chooses the navigation container from input flags; the explicit form below shows the properties that the ServiceX callable must reproduce:
