@@ -358,6 +358,8 @@ Do not include both matcher tools in one query while debugging navigation-format
 
 Fill two histograms with the same GeV axis and overlay them. `matched_pt` may be empty even when the event fired; that is a valid matching result, not an instruction to substitute all jets. A zero-jet event contributes no entries to either flattened array.
 
+For the MC23 PHYSLITE validation file described above, `HLT_j260_L1jJ125` fired in one selected event and `HLT_j45_L1RD0_FILLED` fired in 15,751 events, but the Run 3 matcher returned zero matched offline jets for both chains. Widening the matching cone from 0.2 to 0.7 did not change that result. This means the decision and matching queries are separate measurements; inspect the stored navigation and chain features before interpreting an empty matched collection as a physics conclusion.
+
 ## Dependencies and checks
 
 For a standalone script, list `func_adl_servicex_xaodr25`, `servicex`, `servicex-analysis-utils`, `awkward`, `numpy`, and the plotting package in its PEP 723 dependency block. Keep `NFiles=1` until the query translates and the returned fields have been inspected. Check the generated C++ when introducing the name-list callable: it must contain the Trigger Decision Tool initialization, `getListOfTriggers`, and `isPassed(..., TrigDefs::Physics)`. If a transform fails after translation and the ServiceX logs are needed, follow the normal `HELP USER` path from the main ServiceX skill.
