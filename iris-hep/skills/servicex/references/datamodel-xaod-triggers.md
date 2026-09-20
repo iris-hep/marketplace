@@ -212,6 +212,8 @@ def _add_r3_matching_tool(s: ObjectStream[T]) -> ObjectStream[T]:
                 "ANA_CHECK(m_r3TrigConf.initialize());",
                 'ANA_CHECK(m_r3TrigDec.setProperty("ConfigTool", m_r3TrigConf.getHandle()));',
                 'ANA_CHECK(m_r3TrigDec.setProperty("TrigDecisionKey", "xTrigDecision"));',
+                'ANA_CHECK(m_r3TrigDec.setProperty("NavigationFormat", "TrigComposite"));',
+                'ANA_CHECK(m_r3TrigDec.setProperty("HLTSummary", "HLTNav_Summary_DAODSlimmed"));',
                 "ANA_CHECK(m_r3TrigDec.initialize());",
                 "ANA_CHECK(m_r3Score.initialize());",
                 'ANA_CHECK(m_r3mt.setProperty("TrigDecisionTool", m_r3TrigDec.getHandle()));',
@@ -254,7 +256,28 @@ def r3_match_object(trigger: str, offline_object, dr: float = 0.2) -> bool:
 
 The [ATLAS `R3MatchingTool` header](https://atlas-sw-doxygen.web.cern.ch/atlas-sw-doxygen/atlas_main--Doxygen/docs/html/d3/d5f/R3MatchingTool_8h_source.html) documents the single-object overload as `match(recoObject, chain, matchThreshold, rerun)`. If the chain needs trigger re-execution, change the final argument deliberately and document that choice; do not silently use the Run 2 helper on a Run 3 file.
 
-The matching tool owns nested Trigger Decision and scoring tools. Initialize explicit config, TDT, and `Trig::DRScoringTool` handles first, then pass them through `m_r3mt.setProperty("TrigDecisionTool", m_r3TrigDec.getHandle())` and `m_r3mt.setProperty("ScoringTool", m_r3Score.getHandle())` before initializing `m_r3mt`; otherwise the worker cannot retrieve the default nested tools.
+The matching tool owns nested Trigger Decision and scoring tools. Initialize explicit config, TDT, and `Trig::DRScoringTool` handles first, then pass them through `m_r3mt.setProperty("TrigDecisionTool", m_r3TrigDec.getHandle())` and `m_r3mt.setProperty("ScoringTool", m_r3Score.getHandle())` before initializing `m_r3mt`; otherwise the worker cannot retrieve the default nested tools. For Run 3, the TDT also needs `NavigationFormat="TrigComposite"` and the exact `HLTSummary` branch stored by the input derivation. `HLTNav_Summary_DAODSlimmed` is correct for the PHYSLITE/PHYS validation files used here; use the branch discovered with `servicex-get-structure` for another derivation.
+
+### The corresponding Python configuration
+
+In an Athena configuration, Python constructs the same tools and sets their Gaudi properties. It does not replace the C++ initialization in a standalone ServiceX transform: the transform worker must receive equivalent C++ metadata. The ATLAS Python helper chooses the navigation container from input flags; the explicit form below shows the properties that the ServiceX callable must reproduce:
+
+```python
+from AthenaConfiguration.ComponentFactory import CompFactory
+from TrigDecisionTool.TrigDecisionToolConfig import (
+    getRun3NavigationContainerFromInput,
+)
+
+tdt = CompFactory.Trig.TrigDecisionTool("TrigDecisionTool")
+tdt.TrigConfigSvc = cfgsvc
+tdt.NavigationFormat = "TrigComposite"
+tdt.HLTSummary = getRun3NavigationContainerFromInput(flags)
+acc.addPublicTool(tdt, primary=True)
+```
+
+For the DAOD files in the examples, `getRun3NavigationContainerFromInput(flags)` resolves to `HLTNav_Summary_DAODSlimmed`. In the injected C++ template above, this is written explicitly because the ServiceX query does not have Athena `flags`. The [ATLAS Python TDT configuration](https://atlas-sw-doxygen.web.cern.ch/atlas-sw-doxygen/atlas_main--Doxygen/docs/html/d6/da1/namespacepython_1_1TrigDecisionToolConfig.html) and [TDT property declarations](https://atlas-sw-doxygen.web.cern.ch/atlas-sw-doxygen/atlas_main--Doxygen/docs/html/d7/df7/TrigDecisionTool_8h_source.html) are the authoritative references for these settings.
+
+`Trig::R3MatchingTool::initialize()` itself only retrieves its configured decision and scoring tools. It does not infer the navigation format or summary container; those are TDT properties. The [R3 matcher implementation](https://atlas-sw-doxygen.web.cern.ch/atlas-sw-doxygen/atlas_main--Doxygen/docs/html/de/dba/classTrig_1_1R3MatchingTool.html) shows this retrieval sequence. A passed event decision can therefore coexist with zero matched objects when the derivation has no compatible feature links. To inspect this, query `m_r3TrigDec->features<xAOD::IParticleContainer>(chain).size()` before interpreting an empty match collection; the [TrigEDMChecker feature inspection](https://atlas-sw-doxygen.web.cern.ch/atlas-sw-doxygen/atlas_main--Doxygen/docs/html/dd/d43/classTrigEDMChecker.html) uses the same TDT feature API.
 
 ## Four common trigger questions
 
@@ -368,7 +391,7 @@ For the MC23 PHYSLITE validation file described above, `HLT_j260_L1jJ125` fired 
 
 The same check on the corresponding PHYS JZ1 and JZ3 samples used `FuncADLQueryPHYS` with `e.Jets(calibrate=False)`. The default calibrated `e.Jets()` form failed remotely before delivering events; record the ServiceX request ID and obtain the worker log before diagnosing that as a query or trigger failure. With `calibrate=False`, the Run 3 matcher completed successfully and returned zero matched jets for `HLT_j45_L1RD0_FILLED` (15,754 passing events, 156,760 offline jets) and `HLT_j260_L1jJ125` (14,331 passing events, 154,128 offline jets).
 
-For a higher-slice stress test, the JZ4 PHYSLITE file `mc23_13p6TeV:mc23_13p6TeV.801169.Py8EG_A14NNPDF23LO_jj_JZ4.deriv.DAOD_PHYSLITE.e8514_e8586_s4618_s4619_r17610_r17609_p7266_tid50426195_00` had `HLT_j260_L1jJ125` passing in 59,935 of 60,000 examined events (99.89%). The successful matching delivery contained 658,848 offline jets and zero matched jets. A high trigger pass fraction therefore does not by itself prove that the derivation retained usable offline-to-trigger links.
+For a higher-slice stress test, the JZ4 PHYSLITE file `mc23_13p6TeV:mc23_13p6TeV.801169.Py8EG_A14NNPDF23LO_jj_JZ4.deriv.DAOD_PHYSLITE.e8514_e8586_s4618_s4619_r17610_r17609_p7266_tid50426195_00` had `HLT_j260_L1jJ125` passing in 59,935 of 60,000 examined events (99.89%). With the explicit Run 3 navigation properties above, the successful matching delivery contained 658,848 offline jets, zero matched jets, and zero `features<xAOD::IParticleContainer>("HLT_j260_L1jJ125")` entries in every selected event. A high trigger pass fraction therefore does not by itself prove that the derivation retained usable offline-to-trigger links.
 
 ## Dependencies and checks
 
