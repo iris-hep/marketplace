@@ -1,0 +1,4 @@
+interface:
+  display_name: "Data Selection Skill"
+  short_description: "Define datasets in validated backend-neutral YAML"
+  default_prompt: "Use $data-selection to create or update datasets.yaml as the validated source of truth for this analysis."
