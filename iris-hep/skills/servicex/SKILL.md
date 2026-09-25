@@ -1,6 +1,6 @@
 ---
 name: servicex
-description: Write ServiceX queries in func_adl against ATLAS xAOD data (PHYSLITE/PHYS) and provide guidance for dataset selection, filtering, and deliver usage. Use when asked to build, edit, or debug ServiceX/func_adl queries, ATLAS xAOD skims, or rucio dataset fetches.
+description: Write and debug ServiceX queries in func_adl against ATLAS xAOD data (PHYSLITE/PHYS), including dataset selection, filtering, hosted delivery, and local WSL2 reproduction of failing transforms. Use when asked to build, edit, or debug ServiceX/func_adl queries, ATLAS xAOD skims, rucio dataset fetches, or ServiceX Local runs.
 ---
 
 # ServiceX
@@ -33,16 +33,24 @@ Provide concise, correct func_adl query patterns for ServiceX on ATLAS xAOD, wit
 - Use `dataset.Rucio` for rucio DIDs and `dataset.FileList` for URL lists.
 - Always set `NFiles=1` by default.
 - For fetches where cache bypass matters, use `ignore_local_cache=True` in `deliver`.
-- If a transform fails and logs are required, respond with `HELP USER`.
+- If a hosted transform fails and its worker logs are required, respond with
+  `HELP USER`; for a local WSL2 run, inspect the generated `wsl_log.txt` as
+  described in `references/servicex-local-wsl2.md`.
 - Ensure `func_adl_servicex_xaodr25` is listed as a dependency in the active project and installed in the current virtual environment before running or generating code that uses it.
 - When using xAOD tool helpers, add `hep-llm-helpers>=1.0.0b1` to the active project; standalone PEP 723 scripts must list it in their dependency block, and imports use `hep_llm_helpers.xaod_hints`.
 - When defining an xAOD accessor, the Python variable assigned by `make_tool_accessor` must exactly match its `function_name` (for example, `tag_weight = make_tool_accessor(..., function_name="tag_weight", ...)`); use that same name in the later query. A mismatch causes an unknown-type translation error.
 - In standalone-script metadata, declare `jinja2` explicitly if the environment requires it for `func_adl_servicex_xaodr25` usage.
+- When a hosted xAOD transform fails and its worker log is unavailable, use the
+  local WSL2 procedure in `references/servicex-local-wsl2.md` before changing
+  the query. Keep its generated code, logs, caches, downloaded files, and
+  outputs outside the repository.
 
 ## References
 
 - Load `references/servicex-hints.md` for overall ServiceX query patterns, synchronous delivery patterns, best practices, and error handling.
 - Load `references/servicex-async-hints.md` only when async behavior is explicitly requested (`deliver_async`, async timeout handling, or version-compat async behavior).
+- Load `references/servicex-local-wsl2.md` when reproducing a failing ATLAS
+  PHYSLITE transform locally on Windows with `servicex-local` and WSL2.
 - Load only the relevant xAOD data model topic file(s) to keep context small. Naming convention: `references/datamodel-xaod-*.md`.
 - xAOD topics:
   - `references/datamodel-xaod-units.md` (standard ATLAS units (energy, etc))
