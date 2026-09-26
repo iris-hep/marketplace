@@ -31,11 +31,34 @@ uvx --from git+https://github.com/ssl-hep/ServiceX_analysis_utils servicex-get-s
 
 The MC23 PHYSLITE validation file used for these examples contains `HLTNav_Summary_DAODSlimmed` and `HLTNav_Summary_DAODSlimmedAux`, so it takes the Run 3 path.
 
+### What PHYS and PHYSLITE retain for Run 3 matching
+
+The [PHYS](https://gitlab.cern.ch/atlas/athena/-/blob/release/25.0.57/PhysicsAnalysis/DerivationFramework/DerivationFrameworkPhys/python/PHYS.py) and [PHYSLITE](https://gitlab.cern.ch/atlas/athena/-/blob/release/25.0.57/PhysicsAnalysis/DerivationFramework/DerivationFrameworkPhys/python/PHYSLITE.py) configurations set `IncludeJetTriggerContent = False` and `IncludeEGammaTriggerContent = False`. Those switches omit the broad signature-specific trigger containers; they do **not** disable trigger decisions or all offline matching. For Run 3, both call `AddRun3TrigNavSlimmingCollectionsToSlimmingHelper`, which registers `HLTNav_Summary_DAODSlimmed` and `HLTNav_RepackedFeatures_Particle` for DAOD output. The latter is a compact `xAOD::ParticleContainer` with trigger-feature four-vectors. See the [navigation slimming configuration](https://gitlab.cern.ch/atlas/athena/-/blob/release/25.0.57/Trigger/TrigAnalysis/TrigNavSlimmingMT/python/TrigNavSlimmingMTConfig.py).
+
+The reduction happens upstream, during AOD-to-DAOD production:
+
+1. [PhysCommonConfig](https://gitlab.cern.ch/atlas/athena/-/blob/release/25.0.57/PhysicsAnalysis/DerivationFramework/DerivationFrameworkPhys/python/PhysCommonConfig.py) passes `TriggerListsHelper.Run3TriggerNames` to `TriggerMatchingCommonRun3Cfg`.
+2. [TriggerListsHelper](https://gitlab.cern.ch/atlas/athena/-/blob/release/25.0.57/PhysicsAnalysis/DerivationFramework/DerivationFrameworkPhys/python/TriggerListsHelper.py) assembles that list from selected TriggerAPI categories, including Run 3 jets and electrons, plus [run3ExtraMatchingTriggers.txt](https://gitlab.cern.ch/atlas/athena/-/blob/release/25.0.57/PhysicsAnalysis/DerivationFramework/DerivationFrameworkPhys/data/run3ExtraMatchingTriggers.txt) and `flags.Trigger.derivationsExtraChains`. It is a selection, not every chain in the trigger menu.
+3. [TriggerMatchingCommonRun3Cfg](https://gitlab.cern.ch/atlas/athena/-/blob/release/25.0.57/PhysicsAnalysis/DerivationFramework/DerivationFrameworkPhys/python/TriggerMatchingCommonConfig.py) passes the list as `chainsFilter` to `TrigNavSlimmingMTDerivationCfg`. The [slimmer](https://gitlab.cern.ch/atlas/athena/-/blob/release/25.0.57/Trigger/TrigAnalysis/TrigNavSlimmingMT/src/TrigNavSlimmingMTAlg.cxx) resolves those names against the input menu, retains passing branches for selected chains, keeps final features, and repacks their links into the compact container. The decision bits queried by `TrigDecisionTool::isPassed` are separate from this reduced matching navigation.
+
+When PHYSLITE is made from PHYS, `PHYSLITEKernelCfg` skips the AOD-only common augmentations; `TrigNavSlimmingMTDerivationCfg` also skips creation if `HLTNav_Summary_DAODSlimmed` is already in the input. Thus PHYS-to-PHYSLITE production cannot recover a chain's matching branch once PHYS has omitted it. For direct AOD-to-PHYSLITE production, the same common Run 3 chain-selection path runs. AMI identifies `p7266` as Athena 25.0.57, and the MC23 JZ1 PHYSLITE sample used here has **AOD as its immediate parent**: its navigation was slimmed directly from AOD, not inherited from PHYS. The linked files above are from that production release. Check the p-tag and provenance again for other datasets; the file-level checks below establish what a particular DAOD actually contains.
+
+**Decide what is present in a particular file and event:**
+
+| Check | What it establishes |
+| --- | --- |
+| Chain appears in the menu and `isPassed(chain)` is true | The chain was configured and its event decision passed. This says nothing about retained matching objects. |
+| `HLTNav_Summary_DAODSlimmed` and `HLTNav_RepackedFeatures_Particle` exist | The file has the Run 3 DAOD navigation format. This says nothing about a particular chain. |
+| The chain's `HLT::Identifier(chain).numeric()` decision ID appears on relevant slimmed navigation nodes | The chain has retained navigation decisions in that event. Multi-leg chains also use leg IDs. A decision ID alone is not proof of a valid particle feature. |
+| `TrigDecisionTool::features<xAOD::IParticleContainer>(Trig::FeatureRequestDescriptor(chain))` yields valid links | The matcher can retrieve online particle features for that chain and event. This is the decisive input check before testing offline-object matching. |
+
+Use `HLT::Identifier` and `TrigCompositeUtils::decisionIDs` to inspect stored numeric IDs; do not use Python's `hash()` or assume the readable chain name is stored as a navigation branch. The [slimmer implementation](https://gitlab.cern.ch/atlas/athena/-/blob/release/25.0.57/Trigger/TrigAnalysis/TrigNavSlimmingMT/src/TrigNavSlimmingMTAlg.cxx) creates chain and leg IDs for the filter and intersects them with node IDs. For routine analysis, query valid features through the TDT rather than manually traversing the graph; its feature request handles the chain's navigation and leg structure. Inspect PHYS and PHYSLITE independently if the production route or p-tag is uncertain.
+
 ### What `L1RD0_FILLED` means
 
 `RD0` is an L1 random item. The `_FILLED` suffix applies the filled-bunch crossing requirement; it does not mean that the event contains a jet. A chain such as `HLT_j45_L1RD0_FILLED` therefore uses a random filled-bunch L1 seed and applies its jet requirement at HLT. The L1 seed can be prescaled, and the HLT chain can have a separate prescale. The chain name alone does not provide either prescale, so use the trigger menu or prescale metadata when a rate or efficiency needs to be interpreted.
 
-An event-level decision and object matching answer different questions. `tdt_chain_fired` asks whether the trigger decision says that the chain passed. `R3MatchingTool` additionally needs a usable trigger feature and link for the offline object in the stored navigation. A passed chain can therefore produce an empty matched offline collection in a derivation whose navigation is repacked or whose trigger feature is not link-compatible with the offline collection. Treat that as a navigation/content result until the stored feature links have been inspected; do not infer that the HLT found no jet from an empty matcher output.
+An event-level decision and object matching answer different questions. `tdt_chain_fired` asks whether the trigger decision says that the chain passed. `R3MatchingTool` additionally needs a retained, valid feature link for that chain in the slimmed navigation. Repacking is normal and works for retained features. A passed chain can therefore produce an empty matched offline collection if its branch was filtered out, its final feature was not retained or retrievable, or no offline object passes matching. Inspect the feature links before interpreting an empty match collection; do not infer that the HLT found no jet from that result alone.
 
 ## Filter events by a chain
 
@@ -288,7 +311,18 @@ acc.addPublicTool(tdt, primary=True)
 
 For the DAOD files in the examples, `getRun3NavigationContainerFromInput(flags)` resolves to `HLTNav_Summary_DAODSlimmed`. In the injected C++ template above, this is written explicitly because the ServiceX query does not have Athena `flags`. The [ATLAS Python TDT configuration](https://atlas-sw-doxygen.web.cern.ch/atlas-sw-doxygen/atlas_main--Doxygen/docs/html/d6/da1/namespacepython_1_1TrigDecisionToolConfig.html) and [TDT property declarations](https://atlas-sw-doxygen.web.cern.ch/atlas-sw-doxygen/atlas_main--Doxygen/docs/html/d7/df7/TrigDecisionTool_8h_source.html) are the authoritative references for these settings.
 
-`Trig::R3MatchingTool::initialize()` itself only retrieves its configured decision and scoring tools. It does not infer the navigation format or summary container; those are TDT properties. The [R3 matcher implementation](https://atlas-sw-doxygen.web.cern.ch/atlas-sw-doxygen/atlas_main--Doxygen/docs/html/de/dba/classTrig_1_1R3MatchingTool.html) shows this retrieval sequence. A passed event decision can therefore coexist with zero matched objects when the derivation has no compatible feature links. To inspect this, query `m_r3TrigDec->features<xAOD::IParticleContainer>(chain).size()` before interpreting an empty match collection; the [TrigEDMChecker feature inspection](https://atlas-sw-doxygen.web.cern.ch/atlas-sw-doxygen/atlas_main--Doxygen/docs/html/dd/d43/classTrigEDMChecker.html) uses the same TDT feature API.
+`Trig::R3MatchingTool::initialize()` itself only retrieves its configured decision and scoring tools. It does not infer the navigation format or summary container; those are TDT properties. The [R3 matcher implementation](https://atlas-sw-doxygen.web.cern.ch/atlas-sw-doxygen/atlas_main--Doxygen/docs/html/de/dba/classTrig_1_1R3MatchingTool.html) shows this retrieval sequence. A passed event decision can therefore coexist with zero matched objects when the derivation has no compatible feature links. Its matching path constructs `Trig::FeatureRequestDescriptor frd(chain)` and requests `m_r3TrigDec->features<xAOD::IParticleContainer>(frd)` before comparing objects. Use that exact request in a diagnostic, count valid links, and only then interpret the matching result:
+
+```cpp
+Trig::FeatureRequestDescriptor frd(chain);
+auto features = m_r3TrigDec->features<xAOD::IParticleContainer>(frd);
+const auto n_features = features.size();
+const auto n_valid = std::count_if(features.begin(), features.end(),
+                                  [](const auto& link) { return link.isValid(); });
+// Include <algorithm> when injecting this into a ServiceX query.
+```
+
+One local positive control used `HLT_e60_lhvloose_L1eEM26M` on the JZ2 MC23 PHYSLITE file `DAOD_PHYSLITE.50426179._000001.pool.root.1` with AnalysisBase 25.2.80: 14 of 20,000 events passed, each passing event returned one particle feature, and eight events had an offline `AnalysisElectrons` object matched by the same `R3MatchingTool` template. This verifies that the TDT navigation setup and delta-R matching path can work on this PHYSLITE file. It does not establish why the tested jet chains returned zero features.
 
 ## Four common trigger questions
 
