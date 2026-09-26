@@ -37,6 +37,7 @@ Provide concise, correct func_adl query patterns for ServiceX on ATLAS xAOD, wit
   `HELP USER`; for a local WSL2 run, inspect the generated `wsl_log.txt` as
   described in `references/servicex-local-wsl2.md`.
 - Ensure `func_adl_servicex_xaodr25` is listed as a dependency in the active project and installed in the current virtual environment before running or generating code that uses it.
+- The suffix on the xAOD package selects the ATLAS software release: `func_adl_servicex_xaodr25` is for Release 25 and `func_adl_servicex_xaodr21` is for Release 21. Match the query package to the ServiceX xAOD backend/executor release; do not mix an r25 query package with an r21 executor.
 - When using xAOD tool helpers, add `hep-llm-helpers>=1.0.0b1` to the active project; standalone PEP 723 scripts must list it in their dependency block, and imports use `hep_llm_helpers.xaod_hints`.
 - When defining an xAOD accessor, the Python variable assigned by `make_tool_accessor` must exactly match its `function_name` (for example, `tag_weight = make_tool_accessor(..., function_name="tag_weight", ...)`); use that same name in the later query. A mismatch causes an unknown-type translation error.
 - In standalone-script metadata, declare `jinja2` explicitly if the environment requires it for `func_adl_servicex_xaodr25` usage.
@@ -58,5 +59,6 @@ Provide concise, correct func_adl query patterns for ServiceX on ATLAS xAOD, wit
   - `references/datamodel-xaod-tau.md`
   - `references/datamodel-xaod-missing-et.md`
   - `references/datamodel-xaod-tools-btagging.md`
+  - `references/datamodel-xaod-triggers.md`
   - `references/datamodel-xaod-event-weights.md`
   - `references/datamodel-xaod-tlorentzvector.md`
