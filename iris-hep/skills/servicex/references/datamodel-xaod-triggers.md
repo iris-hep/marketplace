@@ -50,7 +50,7 @@ When PHYSLITE is made from PHYS, `PHYSLITEKernelCfg` skips the AOD-only common a
 | Chain appears in the menu and `isPassed(chain)` is true | The chain was configured and its event decision passed. This says nothing about retained matching objects. |
 | `HLTNav_Summary_DAODSlimmed` and `HLTNav_RepackedFeatures_Particle` exist | The file has the Run 3 DAOD navigation format. This says nothing about a particular chain. |
 | The chain's `HLT::Identifier(chain).numeric()` decision ID appears on relevant slimmed navigation nodes | The chain has retained navigation decisions in that event. Multi-leg chains also use leg IDs. A decision ID alone is not proof of a valid particle feature. |
-| `TrigDecisionTool::features<xAOD::IParticleContainer>(Trig::FeatureRequestDescriptor(chain))` yields valid links | The matcher can retrieve online particle features for that chain and event. This is the decisive input check before testing offline-object matching. |
+| `TrigDecisionTool::features<xAOD::IParticleContainer>(Trig::FeatureRequestDescriptor(chain))` yields links | Count both valid and invalid links. At least one valid link shows some online particle content survives; mixed valid/invalid results can still make `R3MatchingTool` throw `Bad link info`. Test matching only after checking every returned link. |
 
 Use `HLT::Identifier` and `TrigCompositeUtils::decisionIDs` to inspect stored numeric IDs; do not use Python's `hash()` or assume the readable chain name is stored as a navigation branch. The [slimmer implementation](https://gitlab.cern.ch/atlas/athena/-/blob/release/25.0.57/Trigger/TrigAnalysis/TrigNavSlimmingMT/src/TrigNavSlimmingMTAlg.cxx) creates chain and leg IDs for the filter and intersects them with node IDs. For routine analysis, query valid features through the TDT rather than manually traversing the graph; its feature request handles the chain's navigation and leg structure. Inspect PHYS and PHYSLITE independently if the production route or p-tag is uncertain.
 
@@ -322,7 +322,16 @@ const auto n_valid = std::count_if(features.begin(), features.end(),
 // Include <algorithm> when injecting this into a ServiceX query.
 ```
 
-One local positive control used `HLT_e60_lhvloose_L1eEM26M` on the JZ2 MC23 PHYSLITE file `DAOD_PHYSLITE.50426179._000001.pool.root.1` with AnalysisBase 25.2.80: 14 of 20,000 events passed, each passing event returned one particle feature, and eight events had an offline `AnalysisElectrons` object matched by the same `R3MatchingTool` template. This verifies that the TDT navigation setup and delta-R matching path can work on this PHYSLITE file. It does not establish why the tested jet chains returned zero features.
+One local positive control used `HLT_e60_lhvloose_L1eEM26M` on the JZ2 MC23 PHYSLITE file `DAOD_PHYSLITE.50426179._000001.pool.root.1` with AnalysisBase 25.2.80: 14 of 20,000 events passed, each passing event returned one particle feature, and eight events had an offline `AnalysisElectrons` object matched by the same `R3MatchingTool` template. This verifies that the TDT navigation setup and delta-R matching path can work on this PHYSLITE file. The electron control alone does not explain the zero-feature result for the previously tested simple jet chains.
+
+A scan of all fired `HLT_j.*` chains in that same 20,000-event JZ2 file found 254 fired chain names. Of these, 37 returned any particle features and 19 returned at least one valid link. Only two chains had events with **all** returned links valid, and both produced offline `AnalysisJets` matches using `R3MatchingTool` with delta-R threshold 0.2:
+
+| Chain | Fired events | Events with matched offline jets | Matched offline jets |
+| --- | ---: | ---: | ---: |
+| `HLT_j70_j50a_j0_DJMASS1000j50dphi200x400deta_L1jMJJ-500-NFF` | 50 | 49 | 175 |
+| `HLT_j0_HT940_pf_ftf_preselcHT450_L1HT190-jJ40s5pETA21` | 1 | 1 | 15 |
+
+The other 17 chains with some valid links had mixed valid/invalid feature links in every observed event. A direct `R3MatchingTool` call on one such event threw `Bad link info`; the scan skipped matching these mixed-link events, so their zero *tested* matches are not evidence that the offline jets cannot match. For comparison, `HLT_j45_L1RD0_FILLED` fired in 19,282 of these events but returned no particle feature links. These are one-file observations, not guarantees for every p-tag or dataset.
 
 ## Four common trigger questions
 
