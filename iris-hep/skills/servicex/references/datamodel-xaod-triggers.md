@@ -61,6 +61,63 @@ Use `HLT::Identifier` and `TrigCompositeUtils::decisionIDs` to inspect stored nu
 
 An event-level decision and object matching answer different questions. `tdt_chain_fired` asks whether the trigger decision says that the chain passed. `R3MatchingTool` additionally needs a retained, valid feature link for that chain in the slimmed navigation. Repacking is normal and works for retained features. A passed chain can therefore produce an empty matched offline collection if its branch was filtered out, its final feature was not retained or retrievable, or no offline object passes matching. Inspect the feature links before interpreting an empty match collection; do not infer that the HLT found no jet from that result alone.
 
+## Find unprescaled chains with TriggerAPI
+
+A chain name, a configured-chain list, or a positive event decision does not establish that the chain was unprescaled. Prescales can change between years, runs, and luminosity blocks. Use the analysis Good Runs List (GRL) with ATLAS TriggerAPI when selecting data triggers, then check the signature-group recommendations and turn-on for the intended offline selection.
+
+Authoritative references:
+
+- [Lowest unprescaled triggers](https://twiki.cern.ch/twiki/bin/viewauth/Atlas/LowestUnprescaled) contains the non-exhaustive Run 2 and Run 3 year/period tables and links to the exact trigger-configuration browsers.
+- Run 2: [full Run 2 trigger recommendations](https://twiki.cern.ch/twiki/bin/viewauth/Atlas/TriggerRecommendationsForAnalysisGroupsFullRun2), [Run 2 jet-trigger performance](https://twiki.cern.ch/twiki/bin/viewauth/Atlas/JetTriggerPerformanceRun2), and the period-specific [2017 jet recommendations](https://twiki.cern.ch/twiki/bin/viewauth/Atlas/JetTriggersToUseIn2017). Do not carry one chain unchanged across 2015-2018 without checking the period.
+- Run 3: [Run 3 trigger recommendations](https://twiki.cern.ch/twiki/bin/viewauth/Atlas/Run3TriggerRecommendations) and [Run 3 jet-trigger recommendations](https://twiki.cern.ch/twiki/bin/viewauth/Atlas/JetTriggersRun3). The latter documents the preferred PFlow chains, the 2023 calibration/threshold transition, and the Phase-I L1 seed changes in 2024.
+- [TriggerAPI documentation](https://twiki.cern.ch/twiki/bin/viewauth/Atlas/TriggerAPI) and the current [ATLAS software guide](https://atlas-software.docs.cern.ch/athena/trigger/analysis/menutriggerapi/) describe the programmatic interface.
+- Select the GRL from the official [Run 2](https://twiki.cern.ch/twiki/bin/view/AtlasProtected/GoodRunListsForAnalysisRun2) or [Run 3](https://twiki.cern.ch/twiki/bin/view/AtlasProtected/GoodRunListsForAnalysisRun3) recommendations before querying.
+
+### What TriggerAPI answers
+
+`TriggerAPISession` is an Athena Python interface over trigger-menu and prescale information. For a GRL it reports chains and their prescale-weighted live fractions over the GRL's runs and luminosity blocks. It can classify the lowest-unprescaled chains by signature for the whole GRL or for each run. It can instead read a trigger-menu name, a ROOT file containing menu JSON metadata, or a previously saved session JSON.
+
+For Run 3, prefer `TriggerAPISession` or its `tapis` command-line interface from a recent Athena 24.0 release or `main`. Start with the CLI help because the available subcommands and options follow the installed Athena release:
+
+```bash
+setupATLAS
+asetup 24.0,Athena,latest
+tapis --help
+
+# Whole-GRL and per-run single-jet results
+tapis path/to/grl.xml getLowestUnprescaled --triggerType j_single
+tapis path/to/grl.xml getLowestUnprescaledByRun --triggerType j_single
+
+# Query other jet categories separately
+tapis path/to/grl.xml getLowestUnprescaled --triggerType j_multi
+tapis path/to/grl.xml getLowestUnprescaled --triggerType ht
+```
+
+The corresponding Python interface is:
+
+```python
+from TriggerMenuMT.TriggerAPI import TriggerAPISession, TriggerType
+
+session = TriggerAPISession("path/to/grl.xml")
+
+single_jet = session.getLowestUnprescaled(triggerType=TriggerType.j_single)
+multi_jet = session.getLowestUnprescaled(triggerType=TriggerType.j_multi)
+ht = session.getLowestUnprescaled(triggerType=TriggerType.ht)
+
+single_jet_by_run = session.getLowestUnprescaledByRun(
+    triggerType=TriggerType.j_single
+)
+live_fractions = session.getLiveFractions(triggerType=TriggerType.j_single)
+
+session.save("trigger-api-session.json")
+```
+
+The whole-GRL calls return sets of chain names; the per-run call returns a dictionary keyed by run. Use `runStart` and `runEnd` on the query methods when a bounded run range is required. List the installed trigger categories with `[item.name for item in TriggerType]`. A saved session can be reloaded with `TriggerAPISession(json="trigger-api-session.json")` without repeating the database lookup.
+
+For Run 2, follow the legacy section of the TriggerAPI documentation and use a release compatible with the target campaign. The older `TriggerAPI.getLowestUnprescaled(TriggerPeriod..., TriggerType...)` interface uses predefined periods; the GRL-driven session is preferable when supported because it makes the analyzed run/luminosity-block scope explicit.
+
+Treat TriggerAPI as trigger-selection metadata, not an event query or luminosity calculator. A menu-only session identifies primary menu chains rather than measuring their data-taking history. Prescale-weighted live fractions are an approximate selection aid, not a substitute for the official GRL/luminosity calculation. Finally, TriggerAPI does not establish that PHYS or PHYSLITE retained a chain's object-matching navigation; inspect the input and validate matching separately as described above.
+
 ## Filter events by a chain
 
 Use a top-level `Where` for an event decision. Keep the chain name in a Python variable so it can be changed without rewriting the query:
