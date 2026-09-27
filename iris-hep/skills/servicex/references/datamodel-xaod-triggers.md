@@ -11,7 +11,7 @@ from func_adl_servicex_xaodr25 import tdt_chain_fired, tmt_match_object
 ```
 
 - `tdt_chain_fired("HLT_j30_...")` asks the Trigger Decision Tool whether the named chain passed for the current event. The argument is passed to the ATLAS tool, so a valid chain pattern can be used where appropriate.
-- `tmt_match_object("HLT_j30_...", jet, 0.2)` asks the Run 2 Trigger Matching Tool whether an offline object is within the requested delta-R of an object accepted by that chain. It does not select events by itself; combine it with `tdt_chain_fired` when the event must have fired the chain. It is not the matcher for Run 3 `HLTNav_Summary` navigation.
+- `tmt_match_object("HLT_j30_...", jet)` reads precomputed Run 2 `TrigMatch_<chain>` composites through `Trig::MatchFromCompositeTool`. It does not select events by itself; combine it with `tdt_chain_fired` when the event must have fired the chain. In this tool, the optional `dr` argument is ignored: the matching threshold was chosen when the composites were produced. It is not the matcher for Run 3 `HLTNav_Summary` navigation.
 
 The trigger helpers add the required C++ tools and libraries during translation. Do not replace them with an `awkward` operation inside the ServiceX query.
 
@@ -26,7 +26,8 @@ uvx --from git+https://github.com/ssl-hep/ServiceX_analysis_utils servicex-get-s
 ```
 
 - If `HLTNav_Summary_*` appears, the file has Run 3 navigation. Use the `Trig::R3MatchingTool` template below.
-- If the file instead has `TrigNavigation`, `TrigMatch_*`, or `AnalysisTrigMatch_*`, it has Run 2 navigation. Use the imported `tmt_match_object` helper.
+- `TrigMatch_<chain>` and `AnalysisTrigMatch_<chain>` are Run 2 precomputed matching composites. The built-in `tmt_match_object` reads the `TrigMatch_` prefix. For `AnalysisTrigMatch_`, configure `MatchFromCompositeTool.InputPrefix` as shown below.
+- `TrigNavigation` indicates legacy navigation, but by itself does not establish that the precomputed composites needed by `tmt_match_object` exist. Inspect the actual matching containers before using that helper.
 - An empty result for `HLTNav_Summary` does not prove Run 2; inspect the other names as well. Authentication is required for this structure query.
 
 The MC23 PHYSLITE validation file used for these examples contains `HLTNav_Summary_DAODSlimmed` and `HLTNav_Summary_DAODSlimmedAux`, so it takes the Run 3 path.
@@ -333,6 +334,105 @@ A scan of all fired `HLT_j.*` chains in that same 20,000-event JZ2 file found 25
 
 The other 17 chains with some valid links had mixed valid/invalid feature links in every observed event. A direct `R3MatchingTool` call on one such event threw `Bad link info`; the scan skipped matching these mixed-link events, so their zero *tested* matches are not evidence that the offline jets cannot match. For comparison, `HLT_j45_L1RD0_FILLED` fired in 19,282 of these events but returned no particle feature links. These are one-file observations, not guarantees for every p-tag or dataset.
 
+### Repeat the matching inventory on another Run 3 file
+
+The [standalone scan script](../scripts/scan_run3_matching.py) contains the actual `func_adl_callable`/C++ method used for this check. It iterates configured chains matching a narrow pattern, requires each chain's event decision to pass, counts returned and valid `xAOD::IParticleContainer` feature links, and calls `R3MatchingTool::match(*jet, chain, dr, false)` only when **all** returned links are valid. It writes a ROOT result and `trigger_matching_counts.csv` with fired, feature, mixed-link, and matched-event counts. A mixed-link event is recorded separately; the script does not turn the tool's potential `Bad link info` exception into a false negative match.
+
+On Windows, with `atlas_al9` WSL2 and AnalysisBase 25.2.80 installed, run from the marketplace root with a local file and an output directory outside the repository:
+
+```powershell
+$script = 'iris-hep/skills/servicex/scripts/scan_run3_matching.py'
+$inputFile = 'C:\path\to\DAOD_PHYSLITE.pool.root.1'
+$outDir = 'C:\path\to\trigger-scan-output'
+uv run --script $script --input $inputFile --out $outDir --release 25.2.80 --pattern 'HLT_j.*'
+```
+
+The script's PEP 723 metadata installs `servicex-local==1.2.1`, `func-adl-servicex-xaodr25`, `uproot`, and `awkward`. Match the `xaodr25` query package to a Release 25 executor. For PHYS, add `--data-format phys --jet-key <actual offline jet container>`; inspect the file's StoreGate keys before choosing that key. For another Run 3 navigation output, set `--hlt-summary` to the discovered `HLTNav_Summary_*` name. Narrow `--pattern` to a trigger family when a full menu scan is unnecessary. One input file is intentional: counts are evidence about that file, not a whole dataset.
+
+On an aarch64 WSL installation, ServiceX Local 1.2.1 may compile successfully but its generated `runner.sh` still source `x86_64*/setup.sh`. Follow [the local WSL2 runner fix](servicex-local-wsl2.md): use the request directory printed in the error, change that one generated line to `source aarch64*/setup.sh`, and rerun its `wsl_transform_script.sh`. The output destination is printed in the log and embedded in that request's `kick_off.py`. Then run `uv run --script $script --read-root <produced-ROOT-path> --out $outDir` to write the same CSV without submitting another transform. Keep the generated log, request ID, and output ROOT file when reporting a result.
+
+### Repeat the inventory on Run 2 precomputed matching
+
+Check the first file for `TrigMatch_*` and `AnalysisTrigMatch_*` branches with `servicex-get-structure --filter-branch` (use each prefix separately). The chain names are the suffixes of the **non-Aux** `TrigMatch_<chain>` or `AnalysisTrigMatch_<chain>` container names. This identifies which precomputed matching containers were written; a trigger decision alone does not. Inspect `TrigNavigation` separately, since that legacy navigation container does not imply that either precomputed matching prefix exists.
+
+For a `TrigMatch_<chain>` container, use the built-in [`tmt_match_object` helper](https://github.com/iris-hep/func-adl-types-atlas/blob/main/metadata/trigger.py) on that **known chain**. Its underlying [ATLAS `MatchFromCompositeTool`](https://gitlab.cern.ch/atlas/athena/-/blob/release/25.0.57/Trigger/TrigAnalysis/TriggerMatchingTool/Root/MatchFromCompositeTool.cxx) retrieves `InputPrefix + chain`, where `InputPrefix` defaults to `TrigMatch_`. The helper's `dr` argument has no effect on this precomputed result; use the derivation configuration to find the threshold applied upstream.
+
+```python
+from func_adl_servicex_xaodr25 import FuncADLQueryPHYS, tdt_chain_fired, tmt_match_object
+
+chain = "HLT_j..."  # A suffix found under TrigMatch_ in this file.
+query = (FuncADLQueryPHYS()
+    .Select(lambda event: {"jets": event.Jets(calibrate=False)})
+    .Where(lambda collections: tdt_chain_fired(chain))
+    .Select(lambda collections: {
+        "all_jet_pt_GeV": collections.jets.Select(lambda jet: jet.pt() / 1000.0),
+        "matched_jet_pt_GeV": collections.jets
+            .Where(lambda jet: tmt_match_object(chain, jet))
+            .Select(lambda jet: jet.pt() / 1000.0),
+    })
+)
+```
+
+Use `FuncADLQueryPHYSLITE()` and its offline jet collection for PHYSLITE. Deliver this query with `NFiles=1` for each candidate chain and count passing events, events with matched jets, and matched jets from the returned jagged arrays:
+
+```python
+import awkward as ak
+from servicex import Sample, ServiceXSpec, dataset, deliver
+from servicex_analysis_utils import to_awk
+
+sample = Sample(Name="run2_match", Dataset=dataset.Rucio(dataset_name), NFiles=1, Query=query)
+rows = to_awk(deliver(ServiceXSpec(Sample=[sample])))["run2_match"]
+matched_per_event = ak.num(rows["matched_jet_pt_GeV"])
+print({
+    "passing_events": len(rows),
+    "events_with_matched_jets": int(ak.sum(matched_per_event > 0)),
+    "matched_jets": int(ak.sum(matched_per_event)),
+})
+```
+
+If there are many candidate chains, narrow the branch-name prefix first; do not submit every configured menu chain.
+
+For `AnalysisTrigMatch_<chain>`, the built-in helper's `TrigMatch_` prefix is wrong. Configure a `Trig::MatchFromCompositeTool` with `InputPrefix="AnalysisTrigMatch_"` and call it instead:
+
+```python
+import ast
+from typing import Tuple, TypeVar
+from func_adl import ObjectStream, func_adl_callable
+
+T = TypeVar("T")
+
+def _analysis_match_processor(s: ObjectStream[T], a: ast.Call) -> Tuple[ObjectStream[T], ast.Call]:
+    new_s = s.MetaData({
+        "metadata_type": "add_cpp_function", "name": "analysis_match_object",
+        "include_files": [], "arguments": ["chain", "offline_object"],
+        "code": ["auto result = m_analysisMatch->match(*offline_object, chain);"],
+        "result_name": "result", "return_type": "bool",
+    })
+    return new_s.MetaData({
+        "metadata_type": "inject_code", "name": "analysis_match_tool",
+        "header_includes": [
+            "AsgTools/AnaToolHandle.h", "TriggerMatchingTool/IMatchingTool.h",
+            "TriggerMatchingTool/MatchFromCompositeTool.h",
+        ],
+        "private_members": ["asg::AnaToolHandle<Trig::IMatchingTool> m_analysisMatch;"],
+        "instance_initialization": ['m_analysisMatch("Trig::MatchFromCompositeTool/MatchFromCompositeTool")'],
+        "initialize_lines": [
+            'ANA_CHECK(m_analysisMatch.setProperty("InputPrefix", "AnalysisTrigMatch_"));',
+            "ANA_CHECK(m_analysisMatch.initialize());",
+        ],
+        "link_libraries": ["TriggerMatchingToolLib"],
+    }), a
+
+@func_adl_callable(_analysis_match_processor)
+def analysis_match_object(chain: str, offline_object) -> bool:
+    ...
+
+# In the query above, replace tmt_match_object(chain, jet) with
+# analysis_match_object(chain, jet).
+```
+
+This Run 2 prefix override follows the tool's `InputPrefix` property. It compiled and initialized under AnalysisBase 25.2.80 in a zero-event smoke run, but has **not** been tested on a Run 2 file or matching composite. Test a one-file transform with real Run 2 data before treating its counts as validated. If the file has only `TrigNavigation` and no precomputed composites, this recipe does not apply: select a legacy-navigation matching tool appropriate to that release rather than calling `MatchFromCompositeTool`.
+
 ## Four common trigger questions
 
 The snippets below assume `dataset_name`, `base_query = FuncADLQueryPHYSLITE()`, and the normal `deliver` setup from `references/servicex-hints.md`.
@@ -400,7 +500,7 @@ Plot or histogram `ak.drop_none(leading_pt)`. If every selected event has zero j
 
 ### 4. Matched trigger-jet pT compared with all jet pT
 
-First require the chain to have fired. Then return both all offline jets and the subset within the matching cone. The same event supplies both distributions. Choose the matcher from the navigation check above:
+First require the chain to have fired. Then return both all offline jets and the matched subset from those same events. The Run 3 matcher uses the requested delta-R cone; the Run 2 precomputed matcher uses the criterion fixed when its composites were produced. Choose the matcher from the navigation check above:
 
 ```python
 chain = "HLT_j30_momemfrac006_L1jJ160"
@@ -410,7 +510,7 @@ matching_query = (base_query
     .Select(lambda c: {
         "all_jet_pt": c.jets.Select(lambda j: j.pt() / 1000.0),
         "matched_jet_pt": c.jets
-            .Where(lambda j: tmt_match_object(chain, j, 0.2))
+            .Where(lambda j: tmt_match_object(chain, j))
             .Select(lambda j: j.pt() / 1000.0),
     })
 )
