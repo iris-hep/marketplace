@@ -51,6 +51,13 @@ Provide concise, correct func_adl query patterns for ServiceX on ATLAS xAOD, wit
   - `references/datamodel-xaod-tau.md`
   - `references/datamodel-xaod-missing-et.md`
   - `references/datamodel-xaod-tools-btagging.md`
-  - `references/datamodel-xaod-triggers.md`
+  - `references/datamodel-xaod-triggers.md` (event decisions and a matching-format decision table; start here for trigger queries)
   - `references/datamodel-xaod-event-weights.md`
   - `references/datamodel-xaod-tlorentzvector.md`
+
+For triggers, load only the recipe needed after choosing the operation:
+
+- Fired chain names: [name discovery](references/datamodel-xaod-trigger-names.md).
+- Precomputed `TrigMatch_` / `AnalysisTrigMatch_` composites: [Run 2 matching](references/datamodel-xaod-trigger-matching-run2.md).
+- `HLTNav_Summary_*` navigation: [Run 3 matching](references/datamodel-xaod-trigger-matching-run3.md).
+- Data-trigger recommendations, GRLs, or prescales: [trigger selection](references/datamodel-xaod-trigger-selection.md).
