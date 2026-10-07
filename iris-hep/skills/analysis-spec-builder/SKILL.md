@@ -16,6 +16,8 @@ First classify the task into one of these modes:
 1. **Direct analysis request**
    - The user describes an analysis or plot directly.
    - Fill in reasonable defaults only when they are conventional and low-risk.
+   - If the user does not provide a concrete strategy, use a best guess in the specification. In the response
+     suggest further research is necessary to refine.
 
 2. **Source-derived reconstruction**
    - The user provides a paper, note, thesis, existing analysis, or prior specification and asks to reconstruct it.
@@ -41,11 +43,14 @@ First classify the task into one of these modes:
    - signal-defining observables,
    - main backgrounds,
    - control/validation strategy,
-   - statistical output.
-4. Draft a filled-in specification by replacing all `{{...}}` placeholders with concrete content.
-5. If a source analysis is being reconstructed, perform a separate **source-fidelity and consistency review** of the draft before finalizing it.
-6. Ask focused follow-up questions only for missing details that are critical to defining the analysis. Do not block on non-critical implementation details.
-7. Write the final content to `specification.md` unless the user provides a different path.
+   - statistical output
+4. If there is missing information that is crucial, search the web (the archive, etc.) for general topical solutions. These
+   solutions should be technique based, not tool based, to keep the specification general at this stage.
+5. Always perform a background audit - understand if there are any background sources that are missing.
+6. Draft a filled-in specification by replacing all `{{...}}` placeholders with concrete content.
+7. If a source analysis is being reconstructed, perform a separate **source-fidelity and consistency review** of the draft before finalizing it.
+8. Ask focused follow-up questions only for missing details that are critical to defining the analysis. Do not block on non-critical implementation details.
+9. Write the final content to `specification.md` unless the user provides a different path.
 
 ## Drafting Rules
 
