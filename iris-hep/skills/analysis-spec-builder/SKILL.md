@@ -98,6 +98,8 @@ Check all of the following:
 - whether a control-region definition is applied before or after common event selections;
 - whether the stated signal region is exactly equivalent to the nominal pass/pass control-region definition when an ABCD method is used.
 
+Wherever possible, detail why these choices were made - the physics reason or detector reason. This allows downstream decisions to be made when conditions change.
+
 If multiple objects play different roles, name those roles explicitly rather than relying only on "leading" and "subleading" when that would be ambiguous.
 
 ## Background Methods
