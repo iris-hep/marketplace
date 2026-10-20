@@ -29,11 +29,11 @@
 {{List the relevant backgrounds and how each is treated. Omit this section only when the task genuinely has no background-estimation component. Distinguish source-derived methods from user-requested replacements.}}
 
 * {{Background 1}}
-    * Importance: {{Dominant / subdominant / negligible / not quantified}}
-    * Estimation method: {{Data-driven, simulation, sideband, ABCD, template fit, etc.}}
-    * Control/validation sample(s): {{If applicable}}
+  * Importance: {{Dominant / subdominant / negligible / not quantified}}
+  * Estimation method: {{Data-driven, simulation, sideband, ABCD, template fit, etc.}}
+  * Control/validation sample(s): {{If applicable}}
 * {{Background 2}}
-    * ...
+  * ...
 
 ## Data Required
 
@@ -57,23 +57,23 @@ Below is the specific information needed from each data sample above.
 {{List triggers only when relevant. For each trigger, state its purpose, the important selection logic, and any offline plateau requirement. If a trigger can sculpt a control-region or background-estimation variable, state that explicitly. Say `None` if no trigger requirement is needed.}}
 
 * {{trigger 1}}
-    * Role: {{Signal / control / validation}}
-    * Selection: {{Important trigger-level requirements}}
-    * Offline requirement: {{Threshold or matching needed for efficient use, if known}}
-    * Interaction with analysis variables: {{Any relevant sculpting or object-role consequence}}
+  * Role: {{Signal / control / validation}}
+  * Selection: {{Important trigger-level requirements}}
+  * Offline requirement: {{Threshold or matching needed for efficient use, if known}}
+  * Interaction with analysis variables: {{Any relevant sculpting or object-role consequence}}
 * {{trigger 2}}
-    * ...
+  * ...
 
 ## Object Definitions and Roles
 
-{{Include when the analysis uses nontrivial object definitions or when objects have different roles. Omit for very simple analyses.}}
+{{Include when the analysis uses nontrivial object definitions or when objects have different roles. Explicitly state the detector/physics reason each selection/quality cut is required.}}
 
 * {{Object type or role}}
-    * Analysis intent: {{Physics meaning of the object requirement}}
-    * Source realization: {{Run-/detector-specific implementation if source-derived and useful}}
-    * Kinematic/quality requirements: {{Only those needed to define the analysis}}
+  * Analysis intent: {{Physics meaning of the object requirement}}
+  * Source realization: {{Run-/detector-specific implementation if source-derived and useful}}
+  * Kinematic/quality requirements: {{Only those needed to define the analysis}}
 * {{Tag / probe / trigger-matched / leading / subleading / candidate object}}
-    * {{Define the role explicitly. Do not assume trigger-matched means leading unless that is actually required.}}
+  * {{Define the role explicitly. Do not assume trigger-matched means leading unless that is actually required.}}
 
 ## Analysis Regions
 
