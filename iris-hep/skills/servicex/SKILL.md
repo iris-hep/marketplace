@@ -14,6 +14,9 @@ Provide concise, correct func_adl query patterns for ServiceX on ATLAS xAOD, wit
 1. Identify the dataset type and base query.
    - Use `FuncADLQueryPHYSLITE` for PHYSLITE or OpenData.
    - Use `FuncADLQueryPHYS` for PHYS or other derivations.
+   - For an unfamiliar object property or missing method, follow
+     `references/datamodel-xaod-discovery.md`: inspect the installed release-matched
+     Python stubs first, then the corresponding Athena headers if needed.
 2. Build a top-level `Select` that gathers all required collections and singletons.
    - Apply object-level filters with nested `.Where` inside this `Select`.
    - Do not pick columns yet.
@@ -53,6 +56,9 @@ Provide concise, correct func_adl query patterns for ServiceX on ATLAS xAOD, wit
 - Load `references/servicex-local-wsl2.md` when reproducing a failing ATLAS
   PHYSLITE transform locally on Windows with `servicex-local` and WSL2.
 - Load only the relevant xAOD data model topic file(s) to keep context small. Naming convention: `references/datamodel-xaod-*.md`.
+- Load [xAOD accessor discovery](references/datamodel-xaod-discovery.md) for
+  unfamiliar quantities, enum arguments, auxiliary attributes, or C++ methods
+  absent from the Python stubs. It includes a small C++ callable pattern.
 - xAOD topics:
   - `references/datamodel-xaod-units.md` (standard ATLAS units (energy, etc))
   - `references/datamodel-xaod-objects.md` (jets, electrons, muons)
