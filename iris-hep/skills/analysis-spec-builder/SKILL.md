@@ -9,6 +9,12 @@ Build a technically precise analysis specification from the available evidence. 
 
 The output is a specification of _what the analysis does and why_, not a low-level implementation plan.
 
+## Target Run
+
+For ATLAS analyses, assume the target is Run 3 unless the user explicitly specifies another run or asks for a faithful historical reconstruction. A legacy source paper alone does not select its run as the target. State the target run and whether it was requested or assumed near the start of the specification.
+
+When the target differs from the source, preserve the source's physics intent and clearly label its historical realization. Specify the target-run requirements for data, triggers, reconstruction, normalization and uncertainties; do not carry historical luminosities, trigger chains or calibrations into the target as established values. Research crucial adaptations and mark unresolved choices for review rather than inventing them. An explicit user choice always overrides this default.
+
 ## Request Modes
 
 First classify the task into one of these modes:
@@ -22,10 +28,10 @@ First classify the task into one of these modes:
 2. **Source-derived reconstruction**
    - The user provides a paper, note, thesis, existing analysis, or prior specification and asks to reconstruct it.
    - Treat the source as authoritative for what the original analysis did.
-   - Do not silently modernize, correct, or substitute details.
+   - Do not silently modernize, correct, or substitute details. If the Run 3 default applies, declare the adaptation and distinguish it from the historical reconstruction.
 
 3. **Source-derived analysis with requested changes**
-   - Reconstruct the source analysis, but explicitly replace or modify only the parts requested by the user.
+   - Reconstruct the source analysis, but explicitly replace or modify the requested parts and any adaptations required by the declared target run.
    - Preserve the original logic everywhere else unless the requested change forces a dependent change.
    - Clearly distinguish source-derived content from user-requested modifications.
 
@@ -127,7 +133,7 @@ Separate systematic uncertainties into useful categories:
    - uncertainties introduced by a user-requested replacement such as an ABCD estimate.
 
 3. **Modernization/adaptation uncertainties**
-   - uncertainties that may be needed in a future run or implementation but were not part of the source analysis.
+   - uncertainties required by the declared target run or implementation that were not part of the source analysis; identify unresolved target-run evaluations.
 
 Do not present a newly invented or modernized uncertainty as if it came from the source.
 
@@ -184,6 +190,7 @@ Check the draft against the source for:
 
 11. **Internal contradictions**
     - compare Data Samples, Data Required, Triggers, Histograms, Analysis Steps, Workflow, and Statistical Analysis for inconsistent definitions.
+    - verify that all target requirements use the declared run consistently and that historical run-specific values are labeled as references rather than target inputs.
 
 If the review finds a contradiction, fix it before writing the final file. If the source itself is ambiguous, state the ambiguity rather than guessing.
 
