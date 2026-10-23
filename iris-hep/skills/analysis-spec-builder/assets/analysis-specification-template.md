@@ -10,6 +10,7 @@
 
 * Analysis mode: {{Source-derived reconstruction / source-derived with requested changes / refinement of an existing specification}}
 * Source(s): {{Paper, note, thesis, existing specification, or other authoritative source}}
+* Target realization: {{Target run and whether explicitly requested or assumed; for ATLAS default to Run 3 unless explicitly told otherwise or reconstructing the historical analysis faithfully}}
 * Analysis intent: {{Run- and implementation-independent description of what the analysis is trying to select, measure, or test}}
 * Source realization: {{Important run-, detector-, trigger-, or software-specific realization of the analysis intent, if useful}}
 * Requested deviations from the source: {{Explicitly list user-requested changes; say `None` if reconstructing the source exactly}}
@@ -172,7 +173,7 @@ Common preselection:
 
 ### Modernization/adaptation uncertainties
 
-* {{Uncertainty expected only for a later run/adaptation or newly modernized implementation}}
+* {{Uncertainty required by the declared target run/adaptation or newly modernized implementation; identify evaluations still needed}}
 * ...
 
 {{State which analysis stages or model components must be repeated or varied for each class of systematic when that matters. Correlate uncertainties only when they share a physical source.}}
