@@ -12,6 +12,11 @@ Provide concise, correct func_adl query patterns for ServiceX on ATLAS xAOD, wit
 ## Workflow
 
 1. Identify the dataset type and base query.
+   - Start with an ATLAS derivation that contains the required collections and
+     decorations, such as `DAOD_LLP1` for LLP studies or `DAOD_PHYS` or
+     `DAOD_PHYSLITE` for general analyses.
+   - Use full AOD only when the analysis requires specific content that is
+     unavailable in suitable derivations.
    - Use `FuncADLQueryPHYSLITE` for PHYSLITE or OpenData.
    - Use `FuncADLQueryPHYS` for PHYS or other derivations.
    - For an unfamiliar object property or missing method, follow
@@ -34,6 +39,11 @@ Provide concise, correct func_adl query patterns for ServiceX on ATLAS xAOD, wit
 - Use a single final `Select` that returns a dictionary of outputs.
 - Do not use `awkward` functions inside ServiceX queries.
 - Use `dataset.Rucio` for rucio DIDs and `dataset.FileList` for URL lists.
+- Before submitting a Rucio-backed transform, check file-level replicas. By
+  default, select files with an available disk replica that ServiceX can read
+  and skip tape-only files. For a one-file probe, pass a verified file DID.
+  If required files are tape-only, report the missing coverage and the need
+  for staging before processing those files.
 - Always set `NFiles=1` by default.
 - For fetches where cache bypass matters, use `ignore_local_cache=True` in `deliver`.
 - If a hosted transform fails and its worker logs are required, respond with
